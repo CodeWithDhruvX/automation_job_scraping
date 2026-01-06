@@ -6,7 +6,7 @@ const api = axios.create({
     baseURL: 'http://localhost:8000/api'
 })
 
-export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFilteredData }) {
+export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFilteredData, selectedJobUrls = [], onSelectionChange }) {
     const [selectedJob, setSelectedJob] = useState(null)
     const [loadingDesc, setLoadingDesc] = useState(false)
     const [filters, setFilters] = useState({})
@@ -15,6 +15,13 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
     // Column Definitions for consistency between display and filtering
     // Column Definitions for consistency between display and filtering
     const COLUMN_DEFS = useMemo(() => [
+        {
+            key: 'select',
+            label: '',
+            getValue: j => j.job_url,
+            className: "w-10 text-center px-2",
+            isSelect: true
+        },
         { key: 'title', label: 'Title', getValue: j => j.title || 'N/A', className: "font-medium text-slate-900 max-w-md truncate" },
         { key: 'company', label: 'Company', getValue: j => j.company || 'N/A' },
         { key: 'location', label: 'Location', getValue: j => j.location || j.city || 'N/A' },
@@ -139,6 +146,38 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                     <thead className="bg-slate-50 text-slate-900 font-medium border-b border-slate-200">
                         <tr>
                             {COLUMN_DEFS.map((col) => {
+                                if (col.key === 'select') {
+                                    const allVisibleSelected = filteredJobs.length > 0 && filteredJobs.every(j => selectedJobUrls.includes(j.job_url))
+                                    const isIndeterminate = filteredJobs.some(j => selectedJobUrls.includes(j.job_url)) && !allVisibleSelected
+
+                                    return (
+                                        <th key={col.key} className="px-6 py-4 w-10">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                checked={allVisibleSelected}
+                                                ref={input => { if (input) input.indeterminate = isIndeterminate }}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        // Select all visible
+                                                        const visibleUrls = filteredJobs.map(j => j.job_url)
+                                                        // Merge with existing selection to not lose others (or just set to visible? user might want cumulative?)
+                                                        // If we are filtering, usually "Select All" means "Select all filtered matches"
+                                                        // Let's merge unique
+                                                        const newSelection = [...new Set([...selectedJobUrls, ...visibleUrls])]
+                                                        onSelectionChange(newSelection)
+                                                    } else {
+                                                        // Deselect all visible
+                                                        const visibleUrls = filteredJobs.map(j => j.job_url)
+                                                        const newSelection = selectedJobUrls.filter(url => !visibleUrls.includes(url))
+                                                        onSelectionChange(newSelection)
+                                                    }
+                                                }}
+                                            />
+                                        </th>
+                                    )
+                                }
+
                                 const isFiltering = !!filters[col.key]
                                 return (
                                     <th key={col.key} className="px-6 py-4 relative group">
@@ -194,7 +233,21 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                         const rawVal = col.getValue(job)
                                         return (
                                             <td key={col.key} className={`px-6 py-4 ${col.className || ''}`}>
-                                                {col.key === 'title' ? (
+                                                {col.key === 'select' ? (
+                                                    <input
+                                                        type="checkbox"
+                                                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                        checked={selectedJobUrls.includes(job.job_url)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                onSelectionChange([...selectedJobUrls, job.job_url])
+                                                            } else {
+                                                                onSelectionChange(selectedJobUrls.filter(url => url !== job.job_url))
+                                                            }
+                                                        }}
+                                                    />
+                                                ) : col.key === 'title' ? (
                                                     <div className="truncate" title={job.title}>{rawVal}</div>
                                                 ) : col.key === 'status' ? (
                                                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium

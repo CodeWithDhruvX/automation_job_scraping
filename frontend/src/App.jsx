@@ -3,7 +3,7 @@ import axios from 'axios'
 import { JobTable } from './components/JobTable'
 import { FilterBar } from './components/FilterBar'
 import { SearchHistory } from './components/SearchHistory'
-import { LayoutDashboard, RefreshCw, Trash2, X, Download } from 'lucide-react'
+import { LayoutDashboard, RefreshCw, Trash2, X, Download, ExternalLink } from 'lucide-react'
 
 // Configure Axios base URL
 const api = axios.create({
@@ -17,6 +17,7 @@ function App() {
   const [searches, setSearches] = useState([]) // All search sessions
   const [activeSearchId, setActiveSearchId] = useState('all') // Currently selected tab
   const [filteredJobUrls, setFilteredJobUrls] = useState(null) // Track currently visible jobs for export
+  const [selectedJobUrls, setSelectedJobUrls] = useState([]) // Track selected jobs for opening in new tab
 
   // Filter state with default values
   const [filters, setFilters] = useState({
@@ -231,6 +232,7 @@ function App() {
 
   const handleTabClick = (searchId) => {
     setActiveSearchId(searchId)
+    setSelectedJobUrls([]) // Clear selection when switching tabs
   }
 
   const handleDeleteSearch = async (e, searchId) => {
@@ -306,6 +308,18 @@ function App() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          {selectedJobUrls.length > 0 && (
+            <button
+              onClick={() => {
+                selectedJobUrls.forEach(url => window.open(url, '_blank'))
+              }}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-indigo-700 rounded-md hover:bg-indigo-700 transition-colors shadow-sm"
+              title="Open selected jobs in new tabs"
+            >
+              <ExternalLink size={16} />
+              Open Selected ({selectedJobUrls.length})
+            </button>
+          )}
           <button
             onClick={handleClearAllJobs}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-red-700 rounded-md hover:bg-red-700 transition-colors"
@@ -453,6 +467,8 @@ function App() {
             savedJobs={savedJobs}
             onToggleSave={handleToggleSaveJob}
             onFilteredData={handleFilteredData}
+            selectedJobUrls={selectedJobUrls}
+            onSelectionChange={setSelectedJobUrls}
           />
         </div>
       </main >
