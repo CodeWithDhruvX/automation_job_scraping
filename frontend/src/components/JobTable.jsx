@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check } from 'lucide-react'
+import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell } from 'lucide-react'
+import { ReminderModal } from './ReminderModal'
 
 const api = axios.create({
     baseURL: 'http://localhost:8000/api'
@@ -8,6 +9,7 @@ const api = axios.create({
 
 export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFilteredData, selectedJobUrls = [], onSelectionChange }) {
     const [selectedJob, setSelectedJob] = useState(null)
+    const [reminderJob, setReminderJob] = useState(null)
     const [copied, setCopied] = useState(false)
     const [loadingDesc, setLoadingDesc] = useState(false)
     const [filters, setFilters] = useState({})
@@ -294,6 +296,13 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                                 <ExternalLink size={16} />
                                             </button>
                                             <button
+                                                title="Remind Me"
+                                                className="p-1 hover:bg-slate-200 rounded text-amber-500"
+                                                onClick={(e) => { e.stopPropagation(); setReminderJob(job) }}
+                                            >
+                                                <Bell size={16} />
+                                            </button>
+                                            <button
                                                 title="Mark Applied"
                                                 className="p-1 hover:bg-slate-200 rounded text-green-600"
                                                 onClick={(e) => { e.stopPropagation(); /* TODO: Implement apply logic */ }}
@@ -411,6 +420,13 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                     Close
                                 </button>
                                 <button
+                                    onClick={() => setReminderJob(selectedJob)}
+                                    className="px-5 py-2.5 text-sm font-medium text-amber-600 bg-amber-50 border border-amber-100 rounded-xl hover:bg-amber-100 transition-colors shadow-sm flex items-center gap-2"
+                                >
+                                    <Bell size={16} />
+                                    Remind Me
+                                </button>
+                                <button
                                     onClick={() => onToggleSave && onToggleSave(selectedJob)}
                                     className={`
                                         px-5 py-2.5 text-sm font-medium border rounded-xl transition-colors flex items-center gap-2 shadow-sm
@@ -435,6 +451,9 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                         </div>
                     </div>
                 </div>
+            )}
+            {reminderJob && (
+                <ReminderModal job={reminderJob} onClose={() => setReminderJob(null)} />
             )}
         </>
     )
