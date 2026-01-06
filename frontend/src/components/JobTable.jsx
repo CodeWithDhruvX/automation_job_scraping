@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark } from 'lucide-react'
+import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check } from 'lucide-react'
 
 const api = axios.create({
     baseURL: 'http://localhost:8000/api'
@@ -8,6 +8,7 @@ const api = axios.create({
 
 export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFilteredData, selectedJobUrls = [], onSelectionChange }) {
     const [selectedJob, setSelectedJob] = useState(null)
+    const [copied, setCopied] = useState(false)
     const [loadingDesc, setLoadingDesc] = useState(false)
     const [filters, setFilters] = useState({})
     const [activeFilterColumn, setActiveFilterColumn] = useState(null)
@@ -48,7 +49,20 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
         if (selectedJob && !selectedJob.description && !loadingDesc) {
             fetchDescription(selectedJob)
         }
+        setCopied(false)
     }, [selectedJob])
+
+    const handleCopy = async () => {
+        if (!selectedJob) return
+        const text = `${selectedJob.title}\n\n${selectedJob.description || ''}`
+        try {
+            await navigator.clipboard.writeText(text)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+        } catch (err) {
+            console.error('Failed to copy:', err)
+        }
+    }
 
     const fetchDescription = async (job) => {
         setLoadingDesc(true)
@@ -356,7 +370,17 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                             </div>
 
                             <div className="prose prose-slate max-w-none">
-                                <h3 className="text-sm uppercase tracking-wider font-bold text-slate-400 mb-4">Description</h3>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-sm uppercase tracking-wider font-bold text-slate-400 m-0">Description</h3>
+                                    <button
+                                        onClick={handleCopy}
+                                        className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all font-medium"
+                                        title="Copy Title & Description"
+                                    >
+                                        {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                                        {copied ? <span className="text-green-600">Copied</span> : "Copy Info"}
+                                    </button>
+                                </div>
                                 <div className="whitespace-pre-wrap font-sans text-base text-slate-800">
                                     {loadingDesc ? (
                                         <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-3">
