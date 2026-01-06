@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
 import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark } from 'lucide-react'
 
@@ -6,9 +6,22 @@ const api = axios.create({
     baseURL: 'http://localhost:8000/api'
 })
 
-export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave }) {
+export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFilteredData }) {
     const [selectedJob, setSelectedJob] = useState(null)
     const [loadingDesc, setLoadingDesc] = useState(false)
+    const [filters, setFilters] = useState({})
+    const [activeFilterColumn, setActiveFilterColumn] = useState(null)
+
+    // Column Definitions for consistency between display and filtering
+    // Column Definitions for consistency between display and filtering
+    const COLUMN_DEFS = useMemo(() => [
+        { key: 'title', label: 'Title', getValue: j => j.title || 'N/A', className: "font-medium text-slate-900 max-w-md truncate" },
+        { key: 'company', label: 'Company', getValue: j => j.company || 'N/A' },
+        { key: 'location', label: 'Location', getValue: j => j.location || j.city || 'N/A' },
+        { key: 'salary', label: 'Salary', getValue: j => (j.min_amount && j.max_amount ? `$${j.min_amount} - $${j.max_amount}` : 'N/A'), className: "text-slate-500" },
+        { key: 'date_posted', label: 'Posted', getValue: j => j.date_posted || 'Recently', className: "text-slate-500" },
+        { key: 'status', label: 'Status', getValue: j => j.my_status || 'NEW' },
+    ], [])
 
     const isJobSaved = (job) => {
         return savedJobs.some(s => s.job_url === job.job_url)
@@ -53,6 +66,64 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave }) {
         }
     }
 
+    // Apply filters
+    // Apply filters
+    // Apply filters
+    const filteredJobs = useMemo(() => {
+        return jobs.filter(job => {
+            return COLUMN_DEFS.every(col => {
+                const selectedValues = filters[col.key]
+                if (selectedValues === undefined) return true
+                if (selectedValues.length === 0) return false
+                const value = col.getValue(job)
+                return selectedValues.includes(value)
+            })
+        })
+    }, [jobs, filters, COLUMN_DEFS])
+
+    // Notify parent of filtered data
+    useEffect(() => {
+        if (onFilteredData) {
+            onFilteredData(filteredJobs)
+        }
+    }, [filteredJobs, onFilteredData])
+
+    const toggleFilter = (columnKey, value) => {
+        setFilters(prev => {
+            const current = prev[columnKey]
+            const safeCurrent = current || []
+
+            const updated = safeCurrent.includes(value)
+                ? safeCurrent.filter(v => v !== value)
+                : [...safeCurrent, value]
+
+            return { ...prev, [columnKey]: updated }
+        })
+    }
+
+    const setColumnFilter = (columnKey, values) => {
+        setFilters(prev => ({ ...prev, [columnKey]: values }))
+    }
+
+    const clearColumnFilter = (columnKey) => {
+        setFilters(prev => {
+            const { [columnKey]: _, ...rest } = prev
+            return rest
+        })
+    }
+
+
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (activeFilterColumn && !e.target.closest('.column-filter-container')) {
+                setActiveFilterColumn(null)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [activeFilterColumn])
+
     if (!jobs.length) {
         return (
             <div className="flex flex-col items-center justify-center h-64 text-slate-400">
@@ -63,78 +134,117 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave }) {
 
     return (
         <>
-            <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-slate-600">
+            <div className="overflow-visible min-h-[400px]">
+                <table className="w-full text-left text-sm text-slate-600 relative">
                     <thead className="bg-slate-50 text-slate-900 font-medium border-b border-slate-200">
                         <tr>
-                            <th className="px-6 py-4">Title</th>
-                            <th className="px-6 py-4">Company</th>
-                            <th className="px-6 py-4">Location</th>
-                            <th className="px-6 py-4">Salary</th>
-                            <th className="px-6 py-4">Posted</th>
-                            <th className="px-6 py-4">Status</th>
+                            {COLUMN_DEFS.map((col) => {
+                                const isFiltering = !!filters[col.key]
+                                return (
+                                    <th key={col.key} className="px-6 py-4 relative group">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span>{col.label}</span>
+                                            <div className="relative column-filter-container">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        setActiveFilterColumn(activeFilterColumn === col.key ? null : col.key)
+                                                    }}
+                                                    className={`p-1 rounded hover:bg-slate-200 transition-colors ${activeFilterColumn === col.key || isFiltering
+                                                        ? 'text-blue-600 bg-slate-100'
+                                                        : 'text-slate-300 opacity-0 group-hover:opacity-100'
+                                                        }`}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                                                </button>
+
+                                                {activeFilterColumn === col.key && (
+                                                    <ColumnFilter
+                                                        column={col}
+                                                        jobs={jobs}
+                                                        initialFilter={filters[col.key]}
+                                                        onApply={(val) => setColumnFilter(col.key, val)}
+                                                        onClear={() => clearColumnFilter(col.key)}
+                                                        onClose={() => setActiveFilterColumn(null)}
+                                                    />
+                                                )}
+                                            </div>
+                                        </div>
+                                    </th>
+                                )
+                            })}
                             <th className="px-6 py-4 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {jobs.map((job, idx) => (
-                            <tr
-                                key={idx}
-                                onClick={() => setSelectedJob(job)}
-                                className="hover:bg-slate-50 transition-colors group cursor-pointer"
-                            >
-                                <td className="px-6 py-4 font-medium text-slate-900 max-w-md truncate">
-                                    <div className="truncate" title={job.title}>{job.title || 'N/A'}</div>
-                                </td>
-                                <td className="px-6 py-4">{job.company || 'N/A'}</td>
-                                <td className="px-6 py-4">{job.location || job.city || 'N/A'}</td>
-                                <td className="px-6 py-4 text-slate-500">
-                                    {job.min_amount && job.max_amount ? `$${job.min_amount} - $${job.max_amount}` : 'N/A'}
-                                </td>
-                                <td className="px-6 py-4 text-slate-500">{job.date_posted || 'Recently'}</td>
-                                <td className="px-6 py-4">
-                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                  ${job.my_status === 'NEW' ? 'bg-green-100 text-green-700' : ''}
-                  ${job.my_status === 'APPLIED' ? 'bg-blue-100 text-blue-700' : ''}
-                  ${!job.my_status ? 'bg-slate-100 text-slate-600' : ''}
-                `}>
-                                        {job.my_status || 'NEW'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            title={isJobSaved(job) ? "Unsave Job" : "Save Job"}
-                                            className={`p-1 hover:bg-slate-200 rounded ${isJobSaved(job) ? 'text-indigo-600' : 'text-slate-400'}`}
-                                            onClick={(e) => { e.stopPropagation(); onToggleSave && onToggleSave(job) }}
-                                        >
-                                            <Bookmark size={16} fill={isJobSaved(job) ? "currentColor" : "none"} />
-                                        </button>
-                                        <button
-                                            title="Open Link"
-                                            className="p-1 hover:bg-slate-200 rounded text-blue-600"
-                                            onClick={(e) => { e.stopPropagation(); window.open(job.job_url, '_blank') }}
-                                        >
-                                            <ExternalLink size={16} />
-                                        </button>
-                                        <button
-                                            title="Mark Applied"
-                                            className="p-1 hover:bg-slate-200 rounded text-green-600"
-                                            onClick={(e) => { e.stopPropagation(); /* TODO: Implement apply logic */ }}
-                                        >
-                                            <CheckCircle size={16} />
-                                        </button>
-                                        <button
-                                            title="Hide"
-                                            className="p-1 hover:bg-slate-200 rounded text-slate-400"
-                                            onClick={(e) => { e.stopPropagation(); /* TODO: Implement hide logic */ }}
-                                        >
-                                            <EyeOff size={16} />
-                                        </button>
-                                    </div>
+                        {filteredJobs.length === 0 ? (
+                            <tr>
+                                <td colSpan={COLUMN_DEFS.length + 1} className="text-center py-12 text-slate-400">
+                                    No jobs match your filters.
                                 </td>
                             </tr>
-                        ))}
+                        ) : (
+                            filteredJobs.map((job, idx) => (
+                                <tr
+                                    key={idx}
+                                    onClick={() => setSelectedJob(job)}
+                                    className="hover:bg-slate-50 transition-colors group cursor-pointer"
+                                >
+                                    {COLUMN_DEFS.map((col) => {
+                                        const rawVal = col.getValue(job)
+                                        return (
+                                            <td key={col.key} className={`px-6 py-4 ${col.className || ''}`}>
+                                                {col.key === 'title' ? (
+                                                    <div className="truncate" title={job.title}>{rawVal}</div>
+                                                ) : col.key === 'status' ? (
+                                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                                        ${job.my_status === 'NEW' ? 'bg-green-100 text-green-700' : ''}
+                                                        ${job.my_status === 'APPLIED' ? 'bg-blue-100 text-blue-700' : ''}
+                                                        ${!job.my_status ? 'bg-slate-100 text-slate-600' : ''}
+                                                    `}>
+                                                        {rawVal}
+                                                    </span>
+                                                ) : (
+                                                    rawVal
+                                                )}
+                                            </td>
+                                        )
+                                    })}
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                title={isJobSaved(job) ? "Unsave Job" : "Save Job"}
+                                                className={`p-1 hover:bg-slate-200 rounded ${isJobSaved(job) ? 'text-indigo-600' : 'text-slate-400'}`}
+                                                onClick={(e) => { e.stopPropagation(); onToggleSave && onToggleSave(job) }}
+                                            >
+                                                <Bookmark size={16} fill={isJobSaved(job) ? "currentColor" : "none"} />
+                                            </button>
+                                            <button
+                                                title="Open Link"
+                                                className="p-1 hover:bg-slate-200 rounded text-blue-600"
+                                                onClick={(e) => { e.stopPropagation(); window.open(job.job_url, '_blank') }}
+                                            >
+                                                <ExternalLink size={16} />
+                                            </button>
+                                            <button
+                                                title="Mark Applied"
+                                                className="p-1 hover:bg-slate-200 rounded text-green-600"
+                                                onClick={(e) => { e.stopPropagation(); /* TODO: Implement apply logic */ }}
+                                            >
+                                                <CheckCircle size={16} />
+                                            </button>
+                                            <button
+                                                title="Hide"
+                                                className="p-1 hover:bg-slate-200 rounded text-slate-400"
+                                                onClick={(e) => { e.stopPropagation(); /* TODO: Implement hide logic */ }}
+                                            >
+                                                <EyeOff size={16} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -250,5 +360,143 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave }) {
                 </div>
             )}
         </>
+    )
+}
+
+const ColumnFilter = ({ column, jobs, initialFilter, onApply, onClear, onClose }) => {
+    // Memoize unique values to calculate only when jobs/column change
+    const uniqueValues = useMemo(() => Array.from(new Set(jobs.map(j => column.getValue(j)))).sort(), [jobs, column])
+    const [searchTerm, setSearchTerm] = useState('')
+
+    // Local state for deferred filtering
+    const [tempFilter, setTempFilter] = useState(initialFilter)
+
+    const displayValues = uniqueValues.filter(v =>
+        String(v).toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    const isAllSelected = tempFilter === undefined
+
+    const isSelected = (val) => {
+        if (isAllSelected) return true
+        return tempFilter && tempFilter.includes(val)
+    }
+
+    const handleCheckboxChange = (val) => {
+        if (isAllSelected) {
+            // Transition from "All" to "All minus one"
+            const allOthers = uniqueValues.filter(v => v !== val)
+            setTempFilter(allOthers)
+        } else {
+            // Toggle in local array
+            const current = tempFilter || []
+            const updated = current.includes(val)
+                ? current.filter(v => v !== val)
+                : [...current, val]
+            setTempFilter(updated)
+        }
+    }
+
+    const handleSelectAll = (select) => {
+        if (select) {
+            setTempFilter(undefined) // Select All
+        } else {
+            setTempFilter([]) // Select None
+        }
+    }
+
+    const areAllVisibleSelected = displayValues.every(val => isSelected(val))
+    const isIndeterminate = !areAllVisibleSelected && displayValues.some(val => isSelected(val))
+
+    const applyFilter = () => {
+        onApply(tempFilter)
+        onClose()
+    }
+
+    const clearFilter = () => {
+        onClear()
+        onClose()
+    }
+
+    return (
+        <div className="absolute top-full mt-2 left-0 w-64 bg-white rounded-lg shadow-xl border border-slate-200 z-[100] flex flex-col text-sm animate-in fade-in zoom-in-95 duration-100">
+            <div className="p-3 border-b border-slate-100">
+                <input
+                    type="text"
+                    placeholder="Search..."
+                    className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-700"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    autoFocus
+                />
+            </div>
+
+            <div className="max-h-60 overflow-y-auto p-2 space-y-1">
+                <label className="flex items-center px-2 py-1.5 hover:bg-slate-50 rounded cursor-pointer">
+                    <input
+                        type="checkbox"
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 mr-2"
+                        checked={areAllVisibleSelected}
+                        ref={input => { if (input) input.indeterminate = isIndeterminate }}
+                        onChange={(e) => {
+                            if (searchTerm) {
+                                const visibleValues = displayValues
+                                if (e.target.checked) {
+                                    // Add visible to local selection
+                                    let base = isAllSelected ? [...uniqueValues] : (tempFilter ? [...tempFilter] : [])
+                                    visibleValues.forEach(v => {
+                                        if (!base.includes(v)) base.push(v)
+                                    })
+                                    if (base.length === uniqueValues.length) {
+                                        setTempFilter(undefined)
+                                    } else {
+                                        setTempFilter(base)
+                                    }
+                                } else {
+                                    // Remove visible from local selection
+                                    let base = isAllSelected ? [...uniqueValues] : (tempFilter ? [...tempFilter] : [])
+                                    base = base.filter(v => !visibleValues.includes(v))
+                                    setTempFilter(base)
+                                }
+                            } else {
+                                handleSelectAll(e.target.checked)
+                            }
+                        }}
+                    />
+                    <span className="text-slate-900 font-medium">(Select All)</span>
+                </label>
+
+                {displayValues.map((val, idx) => (
+                    <label key={idx} className="flex items-center px-2 py-1.5 hover:bg-slate-50 rounded cursor-pointer">
+                        <input
+                            type="checkbox"
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 mr-2"
+                            checked={isSelected(val)}
+                            onChange={() => handleCheckboxChange(val)}
+                        />
+                        <span className="text-slate-700 truncate block" title={val}>{val}</span>
+                    </label>
+                ))}
+
+                {displayValues.length === 0 && (
+                    <div className="px-2 py-4 text-center text-slate-400 italic">No matches</div>
+                )}
+            </div>
+
+            <div className="p-3 border-t border-slate-100 flex items-center justify-between bg-slate-50 rounded-b-lg">
+                <button
+                    onClick={clearFilter}
+                    className="text-xs text-slate-500 hover:text-slate-800 font-medium px-2 py-1 rounded hover:bg-slate-200 transition-colors"
+                >
+                    Clear
+                </button>
+                <button
+                    onClick={applyFilter}
+                    className="text-xs text-white bg-blue-600 hover:bg-blue-700 font-medium px-4 py-1.5 rounded transition-colors shadow-sm"
+                >
+                    Apply Filter
+                </button>
+            </div>
+        </div>
     )
 }

@@ -156,6 +156,11 @@ class JobManager:
                     data = [job for job in data if not job.get('search_id')]
                 elif search_id != 'all':
                     data = [job for job in data if job.get('search_id') == search_id]
+            
+            job_urls = filters.get('job_urls')
+            if job_urls:
+                 # Filter by specific list of URLs
+                 data = [job for job in data if job.get('job_url') in job_urls]
         
         if not data:
             return pd.DataFrame()

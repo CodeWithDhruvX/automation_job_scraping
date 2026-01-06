@@ -149,6 +149,10 @@ def delete_search(search_id: str):
          pass
     return {"message": f"Search {search_id} deleted"}
 
+class ExportRequest(BaseModel):
+    search_id: Optional[str] = None
+    job_urls: Optional[List[str]] = None
+
 @app.get("/api/export")
 def export_jobs(search_id: Optional[str] = None):
     """Generates an Excel file of jobs (filtered by search_id if provided) and returns it."""
@@ -157,22 +161,40 @@ def export_jobs(search_id: Optional[str] = None):
         if search_id and search_id != 'all':
             filters['search_id'] = search_id
             
-        df = job_manager.export_to_pandas(filters)
-        if df.empty:
-            raise HTTPException(status_code=404, detail="No jobs to export")
-        
-        # Ensure data/exports exists
-        output_dir = os.path.join(os.path.dirname(__file__), '../../data/exports')
-        os.makedirs(output_dir, exist_ok=True)
-        
-        filename = f"jobs_export_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-        file_path = os.path.join(output_dir, filename)
-        
-        df.to_excel(file_path, index=False)
-        
-        return FileResponse(path=file_path, filename=filename, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        return _generate_export(filters)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/export")
+def export_jobs_post(req: ExportRequest):
+    """Generates an Excel file of jobs based on filters in body."""
+    try:
+        filters = {}
+        if req.search_id and req.search_id != 'all':
+            filters['search_id'] = req.search_id
+            
+        if req.job_urls:
+            filters['job_urls'] = req.job_urls
+            
+        return _generate_export(filters)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+def _generate_export(filters):
+    df = job_manager.export_to_pandas(filters)
+    if df.empty:
+        raise HTTPException(status_code=404, detail="No jobs to export")
+    
+    # Ensure data/exports exists
+    output_dir = os.path.join(os.path.dirname(__file__), '../../data/exports')
+    os.makedirs(output_dir, exist_ok=True)
+    
+    filename = f"jobs_export_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    file_path = os.path.join(output_dir, filename)
+    
+    df.to_excel(file_path, index=False)
+    
+    return FileResponse(path=file_path, filename=filename, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 def run_scraper_task(req: ScrapeRequest):
     """Background task to run scraper."""

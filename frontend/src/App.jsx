@@ -16,6 +16,7 @@ function App() {
   const [scrapping, setScrapping] = useState(false)
   const [searches, setSearches] = useState([]) // All search sessions
   const [activeSearchId, setActiveSearchId] = useState('all') // Currently selected tab
+  const [filteredJobUrls, setFilteredJobUrls] = useState(null) // Track currently visible jobs for export
 
   // Filter state with default values
   const [filters, setFilters] = useState({
@@ -168,13 +169,34 @@ function App() {
     }
   }
 
+  const handleFilteredData = (filteredJobs) => {
+    // Determine if filters are effectively active
+    // If we have jobs, and filtered count matches total, filters are likely off (or all match)
+    // We store the URLs to use for export
+    const urls = filteredJobs.map(j => j.job_url)
+    setFilteredJobUrls(urls)
+  }
+
   const handleExport = async (searchId = activeSearchId) => {
     try {
-      const params = {}
-      if (searchId && searchId !== 'all') {
-        params.search_id = searchId
+      const isFiltered = filteredJobUrls && jobs.length > 0 && filteredJobUrls.length !== jobs.length
+
+      let response
+      if (isFiltered || (filteredJobUrls && filteredJobUrls.length === 0)) {
+        // Export specific list (subset or empty)
+        response = await api.post('/export', {
+          search_id: searchId !== 'all' ? searchId : null,
+          job_urls: filteredJobUrls
+        }, { responseType: 'blob' })
+      } else {
+        // Export all for search_id
+        const params = {}
+        if (searchId && searchId !== 'all') {
+          params.search_id = searchId
+        }
+        response = await api.get('/export', { params, responseType: 'blob' })
       }
-      const response = await api.get('/export', { params, responseType: 'blob' })
+
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement('a')
       link.href = url
@@ -424,6 +446,7 @@ function App() {
             onJobUpdate={handleJobUpdate}
             savedJobs={savedJobs}
             onToggleSave={handleToggleSaveJob}
+            onFilteredData={handleFilteredData}
           />
         </div>
       </main >
