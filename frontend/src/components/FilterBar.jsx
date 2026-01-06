@@ -39,6 +39,16 @@ export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersCh
                             className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-sm"
                             required
                         />
+                        <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-600 mt-1.5">
+                            <input
+                                type="checkbox"
+                                name="exactMatchTitle"
+                                checked={filters.exactMatchTitle || false}
+                                onChange={(e) => onFiltersChange(prev => ({ ...prev, exactMatchTitle: e.target.checked }))}
+                                className="rounded text-blue-600 focus:ring-blue-400"
+                            />
+                            <span>Exact match only</span>
+                        </label>
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Location</label>
@@ -50,6 +60,16 @@ export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersCh
                             placeholder="e.g. Remote, NY"
                             className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-sm"
                         />
+                        <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-600 mt-1.5">
+                            <input
+                                type="checkbox"
+                                name="exactMatchLocation"
+                                checked={filters.exactMatchLocation || false}
+                                onChange={(e) => onFiltersChange(prev => ({ ...prev, exactMatchLocation: e.target.checked }))}
+                                className="rounded text-blue-600 focus:ring-blue-400"
+                            />
+                            <span>Exact match only</span>
+                        </label>
                     </div>
                 </div>
 

@@ -23,6 +23,8 @@ function App() {
     datePosted: '72',
     salaryMin: '',
     salaryMax: '',
+    exactMatchLocation: false,
+    exactMatchTitle: false,
     sites: {
       linkedin: true,
       indeed: true,
@@ -77,6 +79,8 @@ function App() {
         hours_old: parseInt(currentFilters.datePosted),
         experience: currentFilters.experience,
         salary: currentFilters.salaryMin ? parseInt(currentFilters.salaryMin) : null,
+        exact_match_location: currentFilters.exactMatchLocation || false,
+        exact_match_title: currentFilters.exactMatchTitle || false,
         clear_before_scrape: true  // Clear old jobs before adding new ones
       })
 

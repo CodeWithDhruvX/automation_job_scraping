@@ -35,6 +35,8 @@ class ScrapeRequest(BaseModel):
     job_type: Optional[str] = None # e.g. "fulltime", "parttime"
     experience: Optional[str] = None # e.g. "entry", "senior"
     salary: Optional[int] = None # e.g. 100000
+    exact_match_location: bool = False  # Filter for exact location match
+    exact_match_title: bool = False  # Filter for exact title match
     clear_before_scrape: bool = True  # Clear old jobs before new search
 
 class JobUpdate(BaseModel):
@@ -125,6 +127,62 @@ def run_scraper_task(req: ScrapeRequest):
         hours_old=req.hours_old,
         job_type=req.job_type
     )
+    
+    # Apply exact match filtering if requested
+    if req.exact_match_location or req.exact_match_title:
+        import re
+        filtered_jobs = []
+        
+        # Debug: Show what we're filtering for
+        if req.exact_match_location:
+            print(f"Exact match location filter enabled for: '{req.location}'")
+        if req.exact_match_title:
+            print(f"Exact match title filter enabled for: '{req.title}'")
+        
+        for job in jobs:
+            keep_job = True
+            
+            # Check exact location match (as complete word, not substring)
+            if req.exact_match_location and req.location:
+                job_location = job.get('location', '').lower().strip()
+                job_city = job.get('city', '').lower().strip()
+                job_state = job.get('state', '').lower().strip()
+                search_location = req.location.lower().strip()
+                
+                # Debug: Print first few jobs to see their location data
+                if len(filtered_jobs) < 3:
+                    print(f"  Job location fields: location='{job_location}', city='{job_city}', state='{job_state}'")
+                
+                # Create regex pattern to match search_location as a complete word
+                # \b ensures word boundaries, so "india" won't match "indianapolis"
+                pattern = r'\b' + re.escape(search_location) + r'\b'
+                
+                # Check if search location appears as a complete word in any location field
+                location_match = (
+                    re.search(pattern, job_location) is not None or
+                    re.search(pattern, job_city) is not None or
+                    re.search(pattern, job_state) is not None
+                )
+                
+                if len(filtered_jobs) < 3:
+                    print(f"  Pattern: '{pattern}', Match: {location_match}")
+                
+                if not location_match:
+                    keep_job = False
+            
+            # Check exact title match (exact match for title, not word boundary)
+            if req.exact_match_title and req.title:
+                job_title = job.get('title', '').lower().strip()
+                search_title = req.title.lower().strip()
+                
+                if search_title not in job_title:
+                    keep_job = False
+            
+            if keep_job:
+                filtered_jobs.append(job)
+        
+        jobs = filtered_jobs
+        print(f"After exact match filtering: {len(jobs)} jobs remain")
     
     # Save to manager
     new_count = job_manager.add_jobs(jobs)
