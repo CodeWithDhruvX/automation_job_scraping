@@ -32,7 +32,8 @@ function App() {
       linkedin: true,
       indeed: true,
       glassdoor: true,
-      zip_recruiter: false
+      zip_recruiter: false,
+      naukri: false
     }
   })
 
