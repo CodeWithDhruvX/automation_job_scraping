@@ -1,4 +1,4 @@
-import { Filter, Play, Download } from 'lucide-react'
+import { Filter, Play, Download, TrendingUp, DollarSign, Briefcase } from 'lucide-react'
 
 export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersChange }) {
     const handleChange = (e) => {
@@ -132,7 +132,65 @@ export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersCh
                     </div>
                 </div>
 
-                {/* Row 3: Sites & Actions */}
+                {/* Row 3: Smart Filters for High-Paying Jobs */}
+                <div className="border-t border-slate-100 pt-3 pb-2">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                            <TrendingUp size={14} />
+                            Smart Filters:
+                        </span>
+
+                        {/* Quick Salary Filters */}
+                        <button
+                            type="button"
+                            onClick={() => onFiltersChange(prev => ({ ...prev, salaryMin: '100000', salaryMax: '' }))}
+                            className="px-3 py-1.5 text-xs font-medium rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center gap-1.5 border border-emerald-200"
+                        >
+                            <DollarSign size={12} />
+                            $100k+ Only
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onFiltersChange(prev => ({ ...prev, salaryMin: '150000', salaryMax: '' }))}
+                            className="px-3 py-1.5 text-xs font-medium rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center gap-1.5 border border-emerald-200"
+                        >
+                            <DollarSign size={12} />
+                            $150k+ Only
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onFiltersChange(prev => ({ ...prev, salaryMin: '200000', salaryMax: '' }))}
+                            className="px-3 py-1.5 text-xs font-medium rounded-md bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors flex items-center gap-1.5 border border-purple-200"
+                        >
+                            <DollarSign size={12} />
+                            $200k+ Premium
+                        </button>
+
+                        {/* Senior Positions Filter */}
+                        <button
+                            type="button"
+                            onClick={() => onFiltersChange(prev => ({ ...prev, experience: 'Mid-Senior' }))}
+                            className="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors flex items-center gap-1.5 border border-blue-200"
+                        >
+                            <Briefcase size={12} />
+                            Senior+ Roles
+                        </button>
+
+                        {/* Hide jobs with no salary */}
+                        <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-700 bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200 hover:bg-slate-100 transition-colors">
+                            <input
+                                type="checkbox"
+                                name="hideNoSalary"
+                                checked={filters.hideNoSalary || false}
+                                onChange={(e) => onFiltersChange(prev => ({ ...prev, hideNoSalary: e.target.checked }))}
+                                className="rounded text-blue-600 focus:ring-blue-400"
+                            />
+                            <span>Hide No Salary</span>
+                        </label>
+                    </div>
+                </div>
+
+                {/* Row 4: Sites & Actions */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pt-2">
                     {/* Sites */}
                     <div className="space-y-1">

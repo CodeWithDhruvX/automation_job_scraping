@@ -23,6 +23,7 @@ function App() {
     datePosted: '72',
     salaryMin: '',
     salaryMax: '',
+    hideNoSalary: false,
     exactMatchLocation: false,
     exactMatchTitle: false,
     sites: {
@@ -78,7 +79,9 @@ function App() {
         results_wanted: 5,
         hours_old: parseInt(currentFilters.datePosted),
         experience: currentFilters.experience,
-        salary: currentFilters.salaryMin ? parseInt(currentFilters.salaryMin) : null,
+        salary_min: currentFilters.salaryMin ? parseInt(currentFilters.salaryMin) : null,
+        salary_max: currentFilters.salaryMax ? parseInt(currentFilters.salaryMax) : null,
+        hide_no_salary: currentFilters.hideNoSalary || false,
         exact_match_location: currentFilters.exactMatchLocation || false,
         exact_match_title: currentFilters.exactMatchTitle || false,
         clear_before_scrape: true  // Clear old jobs before adding new ones

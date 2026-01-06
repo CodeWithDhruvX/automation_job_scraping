@@ -1,43 +1,23 @@
 [
   {
     "site": "linkedin",
-    "title": "Software Engineer",
-    "company": "Capgemini",
-    "location": "Pune, Maharashtra, India",
+    "title": "Software Developer - Junior",
+    "company": "Halliburton",
+    "location": "Bengaluru, Karnataka, India",
     "city": "",
     "state": "",
     "job_type": "",
     "interval": "",
     "min_amount": null,
     "max_amount": null,
-    "job_url": "https://www.linkedin.com/jobs/view/4346313306",
+    "job_url": "https://www.linkedin.com/jobs/view/4330146978",
     "description": "",
-    "date_posted": "2026-01-05",
+    "date_posted": "nan",
     "source": "JobSpy - linkedin",
-    "keyword": "software developer",
-    "date_found": "2026-01-06T08:46:38.971190",
+    "keyword": "Software Engineer",
+    "date_found": "2026-01-06T08:55:14.898902",
     "my_status": "NEW",
-    "added_date": "2026-01-06T14:16:38.972848"
-  },
-  {
-    "site": "linkedin",
-    "title": "Software Development Engineer 1",
-    "company": "Amazon",
-    "location": "Chennai, Tamil Nadu, India",
-    "city": "",
-    "state": "",
-    "job_type": "",
-    "interval": "",
-    "min_amount": null,
-    "max_amount": null,
-    "job_url": "https://www.linkedin.com/jobs/view/4338313273",
-    "description": "",
-    "date_posted": "2026-01-03",
-    "source": "JobSpy - linkedin",
-    "keyword": "software developer",
-    "date_found": "2026-01-06T08:46:38.971190",
-    "my_status": "NEW",
-    "added_date": "2026-01-06T14:16:38.972848"
+    "added_date": "2026-01-06T14:25:14.900411"
   },
   {
     "site": "linkedin",
@@ -54,10 +34,10 @@
     "description": "",
     "date_posted": "nan",
     "source": "JobSpy - linkedin",
-    "keyword": "software developer",
-    "date_found": "2026-01-06T08:46:38.971190",
+    "keyword": "Software Engineer",
+    "date_found": "2026-01-06T08:55:14.898902",
     "my_status": "NEW",
-    "added_date": "2026-01-06T14:16:38.972848"
+    "added_date": "2026-01-06T14:25:14.900411"
   },
   {
     "site": "linkedin",
@@ -74,10 +54,10 @@
     "description": "",
     "date_posted": "nan",
     "source": "JobSpy - linkedin",
-    "keyword": "software developer",
-    "date_found": "2026-01-06T08:46:38.971190",
+    "keyword": "Software Engineer",
+    "date_found": "2026-01-06T08:55:14.899405",
     "my_status": "NEW",
-    "added_date": "2026-01-06T14:16:38.972848"
+    "added_date": "2026-01-06T14:25:14.900411"
   },
   {
     "site": "linkedin",
@@ -94,9 +74,29 @@
     "description": "",
     "date_posted": "nan",
     "source": "JobSpy - linkedin",
-    "keyword": "software developer",
-    "date_found": "2026-01-06T08:46:38.971190",
+    "keyword": "Software Engineer",
+    "date_found": "2026-01-06T08:55:14.899405",
     "my_status": "NEW",
-    "added_date": "2026-01-06T14:16:38.972848"
+    "added_date": "2026-01-06T14:25:14.900411"
+  },
+  {
+    "site": "linkedin",
+    "title": "Software Development Engineer (C++)",
+    "company": "Adobe",
+    "location": "Noida, Uttar Pradesh, India",
+    "city": "",
+    "state": "",
+    "job_type": "",
+    "interval": "",
+    "min_amount": null,
+    "max_amount": null,
+    "job_url": "https://www.linkedin.com/jobs/view/4327082184",
+    "description": "",
+    "date_posted": "nan",
+    "source": "JobSpy - linkedin",
+    "keyword": "Software Engineer",
+    "date_found": "2026-01-06T08:55:14.899405",
+    "my_status": "NEW",
+    "added_date": "2026-01-06T14:25:14.900411"
   }
 ]

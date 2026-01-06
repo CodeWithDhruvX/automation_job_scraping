@@ -34,10 +34,13 @@ class ScrapeRequest(BaseModel):
     hours_old: int = 72
     job_type: Optional[str] = None # e.g. "fulltime", "parttime"
     experience: Optional[str] = None # e.g. "entry", "senior"
-    salary: Optional[int] = None # e.g. 100000
+    salary_min: Optional[int] = None # Minimum salary filter
+    salary_max: Optional[int] = None # Maximum salary filter
+    hide_no_salary: bool = False  # Hide jobs without salary information
     exact_match_location: bool = False  # Filter for exact location match
     exact_match_title: bool = False  # Filter for exact title match
     clear_before_scrape: bool = True  # Clear old jobs before new search
+
 
 class JobUpdate(BaseModel):
     status: str
@@ -183,6 +186,50 @@ def run_scraper_task(req: ScrapeRequest):
         
         jobs = filtered_jobs
         print(f"After exact match filtering: {len(jobs)} jobs remain")
+    
+    # Apply salary-based filtering
+    if req.salary_min or req.salary_max or req.hide_no_salary:
+        import re
+        salary_filtered_jobs = []
+        
+        print(f"Salary filtering enabled - Min: {req.salary_min}, Max: {req.salary_max}, Hide No Salary: {req.hide_no_salary}")
+        
+        for job in jobs:
+            keep_job = True
+            
+            # Extract salary values
+            min_amount = job.get('min_amount')
+            max_amount = job.get('max_amount')
+            
+            # Convert to int if they're strings
+            try:
+                min_salary = int(min_amount) if min_amount else None
+                max_salary = int(max_amount) if max_amount else None
+            except (ValueError, TypeError):
+                min_salary = None
+                max_salary = None
+            
+            # Hide jobs with no salary if requested
+            if req.hide_no_salary:
+                if not min_salary and not max_salary:
+                    keep_job = False
+                    continue
+            
+            # Filter by minimum salary (job's max salary should be >= requested min)
+            if req.salary_min and keep_job:
+                if max_salary is None or max_salary < req.salary_min:
+                    keep_job = False
+            
+            # Filter by maximum salary (job's min salary should be <= requested max)
+            if req.salary_max and keep_job:
+                if min_salary is None or min_salary > req.salary_max:
+                    keep_job = False
+            
+            if keep_job:
+                salary_filtered_jobs.append(job)
+        
+        jobs = salary_filtered_jobs
+        print(f"After salary filtering: {len(jobs)} jobs remain")
     
     # Save to manager
     new_count = job_manager.add_jobs(jobs)
