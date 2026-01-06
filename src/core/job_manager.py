@@ -114,6 +114,14 @@ class JobManager:
             self.jobs[job_url]['status_updated_at'] = datetime.datetime.now().isoformat()
             self.save_data()
 
+    def update_job_detail(self, job_url: str, updates: Dict):
+        """Updates specific fields of a job (e.g. description)."""
+        if job_url in self.jobs:
+            self.jobs[job_url].update(updates)
+            self.save_data()
+            return True
+        return False
+
     def clear_all_jobs(self):
         """Clears all job data from the manager and storage."""
         self.jobs = {}

@@ -78,11 +78,34 @@ def update_job_status_post(payload: Dict[str, str]):
     job_manager.update_status(url, status)
     return {"status": "updated", "url": url, "new_status": status}
 
+from src.utils.desc_fetcher import fetch_description
+
 @app.delete("/api/jobs/clear")
 def clear_all_jobs():
     """Clears all jobs from the database."""
     job_manager.clear_all_jobs()
     return {"message": "All jobs cleared successfully"}
+
+@app.post("/api/jobs/fetch_desc")
+def fetch_job_desc(payload: Dict[str, str]):
+    """
+    Fetches description for a job URL on demand.
+    Payload: {"url": "..."}
+    """
+    url = payload.get("url")
+    if not url:
+        raise HTTPException(status_code=400, detail="Missing url")
+    
+    # Check if we already have it (optional, but good for speed if frontend calls unnecessarily)
+    # job = job_manager.get_job(url) ... (not implemented efficiently, skip)
+    
+    desc = fetch_description(url)
+    if desc:
+        # Save it so we don't have to fetch again
+        job_manager.update_job_detail(url, {"description": desc})
+        return {"description": desc}
+    else:
+        raise HTTPException(status_code=404, detail="Could not fetch description")
 
 @app.get("/api/searches")
 def get_searches():

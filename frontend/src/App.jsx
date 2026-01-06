@@ -233,6 +233,10 @@ function App() {
     }
   }
 
+  const handleJobUpdate = (updatedJob) => {
+    setJobs(jobs.map(j => j.job_url === updatedJob.job_url ? { ...j, ...updatedJob } : j))
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       {/* Navbar */}
@@ -255,7 +259,7 @@ function App() {
             Clear All
           </button>
           <button
-            onClick={fetchJobs}
+            onClick={() => fetchJobs(activeSearchId)}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
           >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
@@ -372,7 +376,7 @@ function App() {
 
         {/* Job Table */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden min-h-[500px]">
-          <JobTable jobs={jobs} />
+          <JobTable jobs={jobs} onJobUpdate={handleJobUpdate} />
         </div>
       </main >
     </div >
