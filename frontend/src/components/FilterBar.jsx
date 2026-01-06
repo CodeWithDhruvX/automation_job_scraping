@@ -132,6 +132,31 @@ export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersCh
                     </div>
                 </div>
 
+                {/* Row 2.75: Results Limit */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">
+                            Results Wanted
+                            <span className="text-slate-400 ml-1">(per site)</span>
+                        </label>
+                        <select
+                            name="resultsWanted"
+                            value={filters.resultsWanted}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white"
+                        >
+                            <option value="25">25 (Quick)</option>
+                            <option value="50">50 (Recommended)</option>
+                            <option value="100">100 (Medium)</option>
+                            <option value="200">200 (Extensive)</option>
+                            <option value="500">500 (Maximum)</option>
+                        </select>
+                        <p className="text-xs text-slate-400 mt-1">
+                            Higher values may take longer
+                        </p>
+                    </div>
+                </div>
+
                 {/* Row 3: Sites & Actions */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pt-2">
                     {/* Sites */}

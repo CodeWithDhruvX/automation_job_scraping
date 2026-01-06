@@ -23,6 +23,7 @@ function App() {
     datePosted: '72',
     salaryMin: '',
     salaryMax: '',
+    resultsWanted: '50',  // Default safe limit
     exactMatchLocation: false,
     exactMatchTitle: false,
     sites: {
@@ -75,7 +76,7 @@ function App() {
         title: currentFilters.title,
         location: currentFilters.location,
         sites: activeSites,
-        results_wanted: 5,
+        results_wanted: parseInt(currentFilters.resultsWanted) || 50,
         hours_old: parseInt(currentFilters.datePosted),
         experience: currentFilters.experience,
         salary: currentFilters.salaryMin ? parseInt(currentFilters.salaryMin) : null,

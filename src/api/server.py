@@ -30,7 +30,7 @@ class ScrapeRequest(BaseModel):
     title: str
     location: str
     sites: List[str] = ["linkedin", "indeed", "glassdoor"]
-    results_wanted: int = 20
+    results_wanted: int = 50  # Default safe limit, can be increased to 100-500
     hours_old: int = 72
     job_type: Optional[str] = None # e.g. "fulltime", "parttime"
     experience: Optional[str] = None # e.g. "entry", "senior"
