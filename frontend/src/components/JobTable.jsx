@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { ExternalLink, CheckCircle, XCircle, EyeOff, X, Loader2 } from 'lucide-react'
+import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark } from 'lucide-react'
 
 const api = axios.create({
     baseURL: 'http://localhost:8000/api'
 })
 
-export function JobTable({ jobs, onJobUpdate }) {
+export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave }) {
     const [selectedJob, setSelectedJob] = useState(null)
     const [loadingDesc, setLoadingDesc] = useState(false)
+
+    const isJobSaved = (job) => {
+        return savedJobs.some(s => s.job_url === job.job_url)
+    }
 
     // Close modal on escape key
     useEffect(() => {
@@ -99,6 +103,13 @@ export function JobTable({ jobs, onJobUpdate }) {
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            title={isJobSaved(job) ? "Unsave Job" : "Save Job"}
+                                            className={`p-1 hover:bg-slate-200 rounded ${isJobSaved(job) ? 'text-indigo-600' : 'text-slate-400'}`}
+                                            onClick={(e) => { e.stopPropagation(); onToggleSave && onToggleSave(job) }}
+                                        >
+                                            <Bookmark size={16} fill={isJobSaved(job) ? "currentColor" : "none"} />
+                                        </button>
                                         <button
                                             title="Open Link"
                                             className="p-1 hover:bg-slate-200 rounded text-blue-600"
@@ -211,6 +222,19 @@ export function JobTable({ jobs, onJobUpdate }) {
                                     className="px-5 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
                                 >
                                     Close
+                                </button>
+                                <button
+                                    onClick={() => onToggleSave && onToggleSave(selectedJob)}
+                                    className={`
+                                        px-5 py-2.5 text-sm font-medium border rounded-xl transition-colors flex items-center gap-2 shadow-sm
+                                        ${isJobSaved(selectedJob)
+                                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+                                            : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
+                                        }
+                                    `}
+                                >
+                                    <Bookmark size={16} fill={isJobSaved(selectedJob) ? "currentColor" : "none"} />
+                                    {isJobSaved(selectedJob) ? 'Saved' : 'Save'}
                                 </button>
                                 <a
                                     href={selectedJob.job_url}

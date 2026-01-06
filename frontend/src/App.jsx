@@ -44,6 +44,12 @@ function App() {
     return saved ? JSON.parse(saved) : []
   })
 
+  // Saved Jobs state
+  const [savedJobs, setSavedJobs] = useState(() => {
+    const saved = localStorage.getItem('savedJobs')
+    return saved ? JSON.parse(saved) : []
+  })
+
   const fetchSearches = async () => {
     try {
       const res = await api.get('/searches')
@@ -54,6 +60,11 @@ function App() {
   }
 
   const fetchJobs = async (searchId = null) => {
+    if (searchId === 'saved') {
+      setJobs(savedJobs)
+      return
+    }
+
     setLoading(true)
     try {
       const params = {}
@@ -237,6 +248,23 @@ function App() {
     setJobs(jobs.map(j => j.job_url === updatedJob.job_url ? { ...j, ...updatedJob } : j))
   }
 
+  const handleToggleSaveJob = (job) => {
+    const isSaved = savedJobs.some(j => j.job_url === job.job_url)
+    let newSavedJobs
+    if (isSaved) {
+      newSavedJobs = savedJobs.filter(j => j.job_url !== job.job_url)
+    } else {
+      newSavedJobs = [...savedJobs, { ...job, date_saved: new Date().toISOString() }]
+    }
+    setSavedJobs(newSavedJobs)
+    localStorage.setItem('savedJobs', JSON.stringify(newSavedJobs))
+
+    // If currently viewing saved jobs, update the view
+    if (activeSearchId === 'saved') {
+      setJobs(newSavedJobs)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       {/* Navbar */}
@@ -296,52 +324,67 @@ function App() {
 
 
         {/* Search Tabs */}
-        {
-          searches.length > 0 && (
-            <div className="border-b border-slate-200 overflow-x-auto">
-              <nav className="flex space-x-4 pb-1 min-w-max" aria-label="Tabs">
-                <button
-                  onClick={() => handleTabClick('all')}
-                  className={`
+        {(searches.length > 0 || savedJobs.length > 0) && (
+          <div className="border-b border-slate-200 overflow-x-auto">
+            <nav className="flex space-x-4 pb-1 min-w-max" aria-label="Tabs">
+              <button
+                onClick={() => handleTabClick('all')}
+                className={`
                   px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 
                   ${activeSearchId === 'all'
+                    ? 'border-blue-600 text-blue-600 bg-white'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  }
+                `}
+              >
+                All Jobs
+              </button>
+
+              {/* Saved Jobs Tab */}
+              {savedJobs.length > 0 && (
+                <button
+                  onClick={() => handleTabClick('saved')}
+                  className={`
+                  px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 
+                  ${activeSearchId === 'saved'
                       ? 'border-blue-600 text-blue-600 bg-white'
                       : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                     }
                 `}
                 >
-                  All Jobs
+                  Saved Jobs ({savedJobs.length})
                 </button>
+              )}
 
-                {searches.map((search) => (
-                  <button
-                    key={search.search_id}
-                    onClick={() => handleTabClick(search.search_id)}
-                    className={`
+              {searches.map((search) => (
+                <button
+                  key={search.search_id}
+                  onClick={() => handleTabClick(search.search_id)}
+                  className={`
                     px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 flex flex-col items-start relative group pr-8
                     ${activeSearchId === search.search_id
-                        ? 'border-blue-600 text-blue-600 bg-white'
-                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                      }
+                      ? 'border-blue-600 text-blue-600 bg-white'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                    }
                   `}
-                  >
-                    <span className="whitespace-nowrap">{search.search_query}</span>
-                    <span className="text-xs opacity-70 whitespace-nowrap">
-                      {search.search_location} • {search.job_count} jobs
-                    </span>
+                >
+                  <span className="whitespace-nowrap">{search.search_query}</span>
+                  <span className="text-xs opacity-70 whitespace-nowrap">
+                    {search.search_location} • {search.job_count} jobs
+                  </span>
 
-                    <div
-                      onClick={(e) => handleDeleteSearch(e, search.search_id)}
-                      className="absolute right-1 top-2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                      title="Close tab and delete jobs"
-                    >
-                      <X size={14} />
-                    </div>
-                  </button>
-                ))}
-              </nav>
-            </div>
-          )
+                  <div
+                    onClick={(e) => handleDeleteSearch(e, search.search_id)}
+                    className="absolute right-1 top-2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                    title="Close tab and delete jobs"
+                  >
+                    <X size={14} />
+                  </div>
+                </button>
+              ))}
+            </nav>
+          </div>
+        )
         }
 
         {/* Stats */}
@@ -376,7 +419,12 @@ function App() {
 
         {/* Job Table */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden min-h-[500px]">
-          <JobTable jobs={jobs} onJobUpdate={handleJobUpdate} />
+          <JobTable
+            jobs={jobs}
+            onJobUpdate={handleJobUpdate}
+            savedJobs={savedJobs}
+            onToggleSave={handleToggleSaveJob}
+          />
         </div>
       </main >
     </div >
