@@ -159,13 +159,9 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                                 ref={input => { if (input) input.indeterminate = isIndeterminate }}
                                                 onChange={(e) => {
                                                     if (e.target.checked) {
-                                                        // Select all visible
+                                                        // Select all visible (Replace mode)
                                                         const visibleUrls = filteredJobs.map(j => j.job_url)
-                                                        // Merge with existing selection to not lose others (or just set to visible? user might want cumulative?)
-                                                        // If we are filtering, usually "Select All" means "Select all filtered matches"
-                                                        // Let's merge unique
-                                                        const newSelection = [...new Set([...selectedJobUrls, ...visibleUrls])]
-                                                        onSelectionChange(newSelection)
+                                                        onSelectionChange(visibleUrls)
                                                     } else {
                                                         // Deselect all visible
                                                         const visibleUrls = filteredJobs.map(j => j.job_url)
