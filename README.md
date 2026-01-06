@@ -1,40 +1,160 @@
-# Legal Job Aggregation & Automation Platform
+# 🚀 JobSpy - Job Scraping & Automation Platform
 
-A compliant, automated system to discover jobs from Google Jobs, ATS platforms, and company career pages.
+A modern, full-stack job aggregation platform with React frontend and FastAPI backend. Search and filter jobs from multiple sources with an intuitive dashboard.
 
-## Features
-- **Sourcing**: Fetches jobs from Google Search (via SERP API) and direct ATS integrations.
-- **Compliance**: No direct LinkedIn scraping; uses `site:linkedin.com/jobs` queries.
-- **Data Management**: Deduplicates, normalizes, and stores jobs in SQLite/PostgreSQL.
-- **Export**: Exports curated job lists to Excel/CSV.
+## ⚡ Quick Start
 
-## Setup
+**Fastest way to run:** Just double-click **`smart_run.bat`**
 
-1. **Install Dependencies**
+Or from terminal:
+```bash
+smart_run.bat
+```
+
+Then open http://localhost:5173 in your browser!
+
+📖 **[See QUICKSTART.md for detailed instructions →](QUICKSTART.md)**
+
+---
+
+## 🎯 Features
+
+- 🔍 **Multi-Source Job Search** - Aggregate jobs from Indeed, LinkedIn, Glassdoor, ZipRecruiter, and more
+- 🎨 **Modern React Dashboard** - Beautiful, responsive UI with real-time filtering
+- ⚡ **Smart Search** - Filter by title, location, job type, salary range, and more
+- 📊 **Export to Excel** - Download your filtered results
+- 🔄 **Search History** - Keep track of previous searches
+- 💰 **High-Paying Job Filter** - Focus on high-salary positions
+- 🎯 **Exact Match Search** - Precise keyword matching
+
+---
+
+## 🛠️ Setup
+
+### First Time Installation
+
+1. **Backend Setup**
    ```bash
    pip install -r requirements.txt
    ```
 
-2. **Configuration**
-   Edit `config/config.yaml` to set your roles, locations, and API keys.
-   
-   *Note: You need a SERP API key (e.g., from SerpAPI) for Google functionality.*
-
-3. **Run**
+2. **Frontend Setup**
    ```bash
-   python src/main.py
+   cd frontend
+   npm install
+   cd ..
    ```
 
-## Directory Structure
-- `config/`: Configuration files.
-- `data/`: Database and export files.
-- `src/`: Source code.
-  - `connectors/`: Data fetchers.
-  - `core/`: Database and logic.
-  - `utils/`: Helpers.
+### Running the Application
 
-## License
+Choose your preferred method:
+
+| Method | Command | Description |
+|--------|---------|-------------|
+| **Smart Run** | `smart_run.bat` | ⭐ Kills existing & restarts both servers |
+| **Simple Run** | `run_dev.bat` | Starts both servers |
+| **VSCode Tasks** | `Ctrl+Shift+P` → Run Task | Run from VSCode Command Palette |
+
+### Auto-Run Options
+
+- **VSCode Auto-Start**: Run `setup_vscode.bat` (one-time)
+- **Windows Startup**: Run `setup_windows_autostart.bat` as Admin (optional)
+
+📖 **[See SETUP_AUTORUN.md for VSCode integration →](SETUP_AUTORUN.md)**
+
+---
+
+## 🌐 Access URLs
+
+Once running:
+- **Frontend Dashboard**: http://localhost:5173
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+---
+
+## 📁 Project Structure
+
+```
+automation_job_scraping/
+├── 📄 smart_run.bat              # ⭐ Smart runner (recommended)
+├── 📄 setup_vscode.bat           # VSCode tasks setup
+├── 📄 QUICKSTART.md             # Quick start guide
+├── 📄 SETUP_AUTORUN.md          # Auto-run documentation
+│
+├── 🎨 frontend/                 # React + Vite frontend
+│   ├── src/
+│   │   ├── components/         # React components
+│   │   ├── App.jsx            # Main app
+│   │   └── index.css          # Styles
+│   └── package.json
+│
+├── 🔧 src/                      # Python backend
+│   ├── api/
+│   │   └── server.py          # FastAPI server
+│   └── scrapers/              # Job scraping logic
+│
+├── 📊 data/                     # Database & exports
+└── 🔐 config/                   # Configuration files
+```
+
+---
+
+## 🔧 Technology Stack
+
+**Frontend:**
+- React 18
+- Vite
+- Tailwind CSS
+- Lucide Icons
+- Axios
+
+**Backend:**
+- Python 3.8+
+- FastAPI
+- Uvicorn
+- python-jobspy
+- SQLite
+
+---
+
+## 📝 Available Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `smart_run.bat` | Kill existing processes & restart both servers |
+| `run_dev.bat` | Start both servers (simple) |
+| `setup_vscode.bat` | Configure VSCode tasks |
+| `setup_windows_autostart.bat` | Setup Windows auto-start |
+
+---
+
+## 🐛 Troubleshooting
+
+**Port already in use?**
+```bash
+smart_run.bat  # Automatically kills & restarts
+```
+
+**Backend won't start?**
+```bash
+pip install -r requirements.txt
+```
+
+**Frontend won't start?**
+```bash
+cd frontend && npm install
+```
+
+📖 **[See QUICKSTART.md for more troubleshooting →](QUICKSTART.md)**
+
+---
+
+## 📄 License
+
 MIT
 
+---
 
-add
+**Made with ❤️ for efficient job hunting**
