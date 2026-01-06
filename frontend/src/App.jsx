@@ -124,10 +124,20 @@ function App() {
     const newHistoryItem = {
       id: Date.now(),
       timestamp: Date.now(),
+      isSaved: false,
       filters: { ...currentFilters }
     }
 
-    const updatedHistory = [newHistoryItem, ...searchHistory].slice(0, 20) // Keep last 20 searches
+    const updatedHistory = [newHistoryItem, ...searchHistory].slice(0, 50) // Increased limit to allow for saved items
+    setSearchHistory(updatedHistory)
+    localStorage.setItem('searchHistory', JSON.stringify(updatedHistory))
+  }
+
+  // Toggle saved status of a history item
+  const handleToggleSavedHistory = (id) => {
+    const updatedHistory = searchHistory.map(item =>
+      item.id === id ? { ...item, isSaved: !item.isSaved } : item
+    )
     setSearchHistory(updatedHistory)
     localStorage.setItem('searchHistory', JSON.stringify(updatedHistory))
   }
@@ -272,6 +282,7 @@ function App() {
               history={searchHistory}
               onSelectHistory={handleSelectHistory}
               onClearHistory={handleClearHistory}
+              onToggleSaved={handleToggleSavedHistory}
             />
           </div>
         </div>
