@@ -23,6 +23,7 @@ function App() {
     location: '',
     experience: '',
     datePosted: '72',
+    jobType: '', // Added jobType
     salaryMin: '',
     salaryMax: '',
     resultsWanted: '50',  // Default safe limit
@@ -95,6 +96,7 @@ function App() {
         sites: activeSites,
         results_wanted: parseInt(currentFilters.resultsWanted) || 50,
         hours_old: parseInt(currentFilters.datePosted),
+        job_type: currentFilters.jobType, // Added job_type
         experience: currentFilters.experience,
         salary: currentFilters.salaryMin ? parseInt(currentFilters.salaryMin) : null,
         exact_match_location: currentFilters.exactMatchLocation || false,

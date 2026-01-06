@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { History, Clock, Trash2, MapPin, Tag, DollarSign, Star } from 'lucide-react'
+import { History, Clock, Trash2, MapPin, Tag, DollarSign, Star, Briefcase } from 'lucide-react'
 
 export function SearchHistory({ history, onSelectHistory, onClearHistory, onToggleSaved }) {
     const [activeTab, setActiveTab] = useState('recent')
@@ -34,8 +34,8 @@ export function SearchHistory({ history, onSelectHistory, onClearHistory, onTogg
                 <button
                     onClick={() => setActiveTab('recent')}
                     className={`flex items-center gap-2 px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'recent'
-                            ? 'border-blue-600 text-blue-600'
-                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        ? 'border-blue-600 text-blue-600'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
                         }`}
                 >
                     <History size={16} />
@@ -44,8 +44,8 @@ export function SearchHistory({ history, onSelectHistory, onClearHistory, onTogg
                 <button
                     onClick={() => setActiveTab('saved')}
                     className={`flex items-center gap-2 px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'saved'
-                            ? 'border-blue-600 text-blue-600'
-                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        ? 'border-blue-600 text-blue-600'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
                         }`}
                 >
                     <Star size={16} />
@@ -94,8 +94,8 @@ export function SearchHistory({ history, onSelectHistory, onClearHistory, onTogg
                                     onToggleSaved(item.id)
                                 }}
                                 className={`absolute right-2 top-2 p-1 rounded-full transition-colors ${item.isSaved
-                                        ? 'text-yellow-400 hover:text-yellow-500'
-                                        : 'text-slate-300 hover:text-yellow-400 opacity-0 group-hover:opacity-100'
+                                    ? 'text-yellow-400 hover:text-yellow-500'
+                                    : 'text-slate-300 hover:text-yellow-400 opacity-0 group-hover:opacity-100'
                                     }`}
                                 title={item.isSaved ? "Remove from saved" : "Save this search"}
                             >
@@ -128,6 +128,14 @@ export function SearchHistory({ history, onSelectHistory, onClearHistory, onTogg
                                 <div className="flex items-center gap-1.5 text-xs text-slate-600 mb-1">
                                     <Tag size={12} className="text-slate-400" />
                                     <span>{item.filters.experience}</span>
+                                </div>
+                            )}
+
+                            {/* Job Type */}
+                            {item.filters.jobType && (
+                                <div className="flex items-center gap-1.5 text-xs text-slate-600 mb-1">
+                                    <Briefcase size={12} className="text-slate-400" />
+                                    <span className="capitalize">{item.filters.jobType}</span>
                                 </div>
                             )}
 

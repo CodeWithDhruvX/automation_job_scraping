@@ -155,6 +155,21 @@ export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersCh
                             Higher values may take longer
                         </p>
                     </div>
+                    <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">Job Type</label>
+                        <select
+                            name="jobType"
+                            value={filters.jobType}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white"
+                        >
+                            <option value="">Any</option>
+                            <option value="fulltime">Full-time</option>
+                            <option value="parttime">Part-time</option>
+                            <option value="contract">Contract</option>
+                            <option value="internship">Internship</option>
+                        </select>
+                    </div>
                 </div>
 
                 {/* Row 3: Sites & Actions */}
