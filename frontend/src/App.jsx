@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { JobTable } from './components/JobTable'
 import { FilterBar } from './components/FilterBar'
+import { SearchHistory } from './components/SearchHistory'
 import { LayoutDashboard, RefreshCw } from 'lucide-react'
 
 // Configure Axios base URL
@@ -13,6 +14,28 @@ function App() {
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(false)
   const [scrapping, setScrapping] = useState(false)
+
+  // Filter state with default values
+  const [filters, setFilters] = useState({
+    title: '',
+    location: '',
+    experience: '',
+    datePosted: '72',
+    salaryMin: '',
+    salaryMax: '',
+    sites: {
+      linkedin: true,
+      indeed: true,
+      glassdoor: true,
+      zip_recruiter: false
+    }
+  })
+
+  // Search history state
+  const [searchHistory, setSearchHistory] = useState(() => {
+    const saved = localStorage.getItem('searchHistory')
+    return saved ? JSON.parse(saved) : []
+  })
 
   const fetchJobs = async () => {
     setLoading(true)
@@ -30,10 +53,13 @@ function App() {
     fetchJobs()
   }, [])
 
-  const handleScrape = async (filters) => {
+  const handleScrape = async (currentFilters) => {
     setScrapping(true)
+    // Clear old jobs from the UI immediately
+    setJobs([])
+
     try {
-      const activeSites = Object.entries(filters.sites)
+      const activeSites = Object.entries(currentFilters.sites)
         .filter(([_, active]) => active)
         .map(([site]) => site)
 
@@ -44,19 +70,55 @@ function App() {
       }
 
       await api.post('/scrape', {
-        title: filters.title,
-        location: filters.location,
+        title: currentFilters.title,
+        location: currentFilters.location,
         sites: activeSites,
         results_wanted: 5,
-        hours_old: parseInt(filters.datePosted),
-        experience: filters.experience,
-        salary: filters.salaryMin ? parseInt(filters.salaryMin) : null
+        hours_old: parseInt(currentFilters.datePosted),
+        experience: currentFilters.experience,
+        salary: currentFilters.salaryMin ? parseInt(currentFilters.salaryMin) : null,
+        clear_before_scrape: true  // Clear old jobs before adding new ones
       })
-      alert("Scraping started! Check logs or refresh in a moment.")
+
+      // Add to search history
+      addToSearchHistory(currentFilters)
+
+      alert("Scraping started! New jobs will load shortly.")
+
+      // Automatically fetch the new jobs after a short delay
+      setTimeout(() => {
+        fetchJobs()
+      }, 2000)
     } catch (err) {
       alert("Failed to start scrape: " + err.message)
     } finally {
       setScrapping(false)
+    }
+  }
+
+  // Add search to history
+  const addToSearchHistory = (currentFilters) => {
+    const newHistoryItem = {
+      id: Date.now(),
+      timestamp: Date.now(),
+      filters: { ...currentFilters }
+    }
+
+    const updatedHistory = [newHistoryItem, ...searchHistory].slice(0, 20) // Keep last 20 searches
+    setSearchHistory(updatedHistory)
+    localStorage.setItem('searchHistory', JSON.stringify(updatedHistory))
+  }
+
+  // Load filters from history
+  const handleSelectHistory = (historicalFilters) => {
+    setFilters({ ...historicalFilters })
+  }
+
+  // Clear all history
+  const handleClearHistory = () => {
+    if (window.confirm('Are you sure you want to clear all search history?')) {
+      setSearchHistory([])
+      localStorage.removeItem('searchHistory')
     }
   }
 
@@ -97,9 +159,28 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="p-6 max-w-7xl mx-auto space-y-6">
-        {/* Filters */}
-        <FilterBar onScrape={handleScrape} onExport={handleExport} isScraping={scrapping} />
+      <main className="p-6 mx-auto space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column: Filters (8 columns on large screens) */}
+          <div className="lg:col-span-8">
+            <FilterBar
+              onScrape={handleScrape}
+              onExport={handleExport}
+              isScraping={scrapping}
+              filters={filters}
+              onFiltersChange={setFilters}
+            />
+          </div>
+
+          {/* Right Column: Search History (4 columns on large screens) */}
+          <div className="lg:col-span-4">
+            <SearchHistory
+              history={searchHistory}
+              onSelectHistory={handleSelectHistory}
+              onClearHistory={handleClearHistory}
+            />
+          </div>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

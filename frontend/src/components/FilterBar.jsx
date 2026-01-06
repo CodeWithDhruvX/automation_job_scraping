@@ -1,29 +1,13 @@
-import { useState } from 'react'
 import { Filter, Play, Download } from 'lucide-react'
 
-export function FilterBar({ onScrape, onExport, isScraping }) {
-    const [filters, setFilters] = useState({
-        title: '',
-        location: '',
-        experience: '', // Any, Internship, Entry Level, Associate, Mid-Senior, Director, Executive
-        datePosted: '72', // Hours
-        salaryMin: '',
-        salaryMax: '',
-        sites: {
-            linkedin: true,
-            indeed: true,
-            glassdoor: true,
-            zip_recruiter: false
-        }
-    })
-
+export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersChange }) {
     const handleChange = (e) => {
         const { name, value } = e.target
-        setFilters(prev => ({ ...prev, [name]: value }))
+        onFiltersChange(prev => ({ ...prev, [name]: value }))
     }
 
     const handleSiteChange = (site) => {
-        setFilters(prev => ({
+        onFiltersChange(prev => ({
             ...prev,
             sites: { ...prev.sites, [site]: !prev.sites[site] }
         }))

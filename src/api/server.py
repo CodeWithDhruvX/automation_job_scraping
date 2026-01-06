@@ -35,6 +35,7 @@ class ScrapeRequest(BaseModel):
     job_type: Optional[str] = None # e.g. "fulltime", "parttime"
     experience: Optional[str] = None # e.g. "entry", "senior"
     salary: Optional[int] = None # e.g. 100000
+    clear_before_scrape: bool = True  # Clear old jobs before new search
 
 class JobUpdate(BaseModel):
     status: str
@@ -63,6 +64,12 @@ def update_job_status_post(payload: Dict[str, str]):
     job_manager.update_status(url, status)
     return {"status": "updated", "url": url, "new_status": status}
 
+@app.delete("/api/jobs/clear")
+def clear_all_jobs():
+    """Clears all jobs from the database."""
+    job_manager.clear_all_jobs()
+    return {"message": "All jobs cleared successfully"}
+
 @app.get("/api/export")
 def export_jobs():
     """Generates an Excel file of all jobs and returns it."""
@@ -87,6 +94,12 @@ def export_jobs():
 def run_scraper_task(req: ScrapeRequest):
     """Background task to run scraper."""
     print(f"Starting scrape for {req.title} in {req.location}")
+    
+    # Clear old jobs if requested
+    if req.clear_before_scrape:
+        print("Clearing old jobs before new search...")
+        job_manager.clear_all_jobs()
+    
     # Config
     connector_config = {
         "sources": {"jobspy": {"enabled": True}},

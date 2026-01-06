@@ -113,6 +113,12 @@ class JobManager:
             self.jobs[job_url]['status_updated_at'] = datetime.datetime.now().isoformat()
             self.save_data()
 
+    def clear_all_jobs(self):
+        """Clears all job data from the manager and storage."""
+        self.jobs = {}
+        self.save_data()
+        return True
+
     def export_to_pandas(self, filters: Dict = None) -> pd.DataFrame:
         data = list(self.jobs.values())
         if not data:
