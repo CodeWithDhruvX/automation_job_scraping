@@ -3,7 +3,7 @@ import axios from 'axios'
 import { JobTable } from './components/JobTable'
 import { FilterBar } from './components/FilterBar'
 import { SearchHistory } from './components/SearchHistory'
-import { LayoutDashboard, RefreshCw } from 'lucide-react'
+import { LayoutDashboard, RefreshCw, Trash2 } from 'lucide-react'
 
 // Configure Axios base URL
 const api = axios.create({
@@ -58,8 +58,8 @@ function App() {
 
   const handleScrape = async (currentFilters) => {
     setScrapping(true)
-    // Clear old jobs from the UI immediately
-    setJobs([])
+    // Don't clear jobs - allow accumulation from multiple searches
+    // setJobs([])  // REMOVED: Was clearing jobs on each new search
 
     try {
       const activeSites = Object.entries(currentFilters.sites)
@@ -82,7 +82,7 @@ function App() {
         salary: currentFilters.salaryMin ? parseInt(currentFilters.salaryMin) : null,
         exact_match_location: currentFilters.exactMatchLocation || false,
         exact_match_title: currentFilters.exactMatchTitle || false,
-        clear_before_scrape: true  // Clear old jobs before adding new ones
+        clear_before_scrape: false  // Keep accumulating jobs from multiple searches
       })
 
       // Add to search history
@@ -142,6 +142,18 @@ function App() {
     }
   }
 
+  const handleClearAllJobs = async () => {
+    if (window.confirm('Are you sure you want to clear all jobs? This action cannot be undone.')) {
+      try {
+        await api.delete('/jobs/clear')
+        setJobs([])
+        alert('All jobs cleared successfully!')
+      } catch (err) {
+        alert('Failed to clear jobs: ' + err.message)
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       {/* Navbar */}
@@ -154,13 +166,23 @@ function App() {
             JobSpy Dashboard
           </h1>
         </div>
-        <button
-          onClick={fetchJobs}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
-        >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleClearAllJobs}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-red-700 rounded-md hover:bg-red-700 transition-colors"
+            title="Clear all jobs from database"
+          >
+            <Trash2 size={16} />
+            Clear All
+          </button>
+          <button
+            onClick={fetchJobs}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}

@@ -37,7 +37,7 @@ class ScrapeRequest(BaseModel):
     salary: Optional[int] = None # e.g. 100000
     exact_match_location: bool = False  # Filter for exact location match
     exact_match_title: bool = False  # Filter for exact title match
-    clear_before_scrape: bool = True  # Clear old jobs before new search
+    clear_before_scrape: bool = False  # Clear old jobs before new search (default: keep and accumulate)
 
 class JobUpdate(BaseModel):
     status: str
