@@ -1,0 +1,41 @@
+# Job Scraper Configuration
+
+# Search Parameters
+roles:
+  - Backend Engineer
+  - Python Developer
+  - Data Engineer
+
+locations:
+  - India
+  - Remote
+  - United States
+
+# Source Configuration
+sources:
+  jobspy:
+    enabled: true
+    proxies: [] # Add list of proxies if needed
+    
+
+
+# System Settings
+database:
+  type: sqlite # or postgresql
+  connection_string: "sqlite:///data/jobs.db"
+
+scheduler:
+  interval_hours: 24
+  run_at: "09:00"
+
+# Search Engine Settings (Free Mode)
+search:
+  engine: "duckduckgo" # Options: duckduckgo, google_lite
+  requests_delay: 15 # Seconds to wait between requests to avoid rate limits
+
+export:
+  format: excel # or csv
+  output_dir: "data/exports"
+
+# No API keys required for free mode
+
