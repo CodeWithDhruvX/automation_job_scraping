@@ -1,6 +1,7 @@
 import json
 import os
 import datetime
+import re
 from typing import List, Dict, Optional
 import pandas as pd
 
@@ -153,6 +154,20 @@ class JobManager:
 
         df = pd.DataFrame(data)
         
+        # Extract emails from description
+        def extract_emails(text):
+            if not isinstance(text, str):
+                return ""
+            # Simple but effective email regex
+            emails = re.findall(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', text)
+            return ", ".join(sorted(list(set(emails)))) # Unique emails only
+            
+        # Use 'description' column for extraction
+        if 'description' in df.columns:
+            df['emails'] = df['description'].apply(extract_emails)
+        else:
+            df['emails'] = ""
+        
         # Renaissance of the UPPERCASE columns for Excel Export
         rename_map = {
             "site": "SITE",
@@ -166,12 +181,13 @@ class JobManager:
             "min_amount": "MIN_AMOUNT",
             "max_amount": "MAX_AMOUNT",
             "job_url": "JOB_URL",
+            "emails": "EMAILS",
             "description": "DESCRIPTION",
             "date_posted": "DATE_POSTED"
         }
         
         # Filter and rename
-        export_cols = ["SITE", "TITLE", "COMPANY", "CITY", "STATE", "JOB_TYPE", "INTERVAL", "MIN_AMOUNT", "MAX_AMOUNT", "JOB_URL", "DESCRIPTION", "DATE_POSTED"]
+        export_cols = ["SITE", "TITLE", "COMPANY", "CITY", "STATE", "JOB_TYPE", "INTERVAL", "MIN_AMOUNT", "MAX_AMOUNT", "JOB_URL", "EMAILS", "DESCRIPTION", "DATE_POSTED"]
         
         # Rename existing columns
         df = df.rename(columns=rename_map)
