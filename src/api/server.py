@@ -37,6 +37,9 @@ class ScrapeRequest(BaseModel):
     salary: Optional[int] = None # e.g. 100000
     exact_match_location: bool = False  # Filter for exact location match
     exact_match_title: bool = False  # Filter for exact title match
+    foreign_only: bool = False # Filter for non-INR jobs
+    visa_sponsorship: bool = False # Filter for visa sponsorship keywords
+    remote_anywhere: bool = False # Filter for "remote anywhere" / "worldwide"
     clear_before_scrape: bool = False  # Clear old jobs before new search (default: keep and accumulate)
 
 class JobUpdate(BaseModel):
@@ -238,7 +241,7 @@ def run_scraper_task(req: ScrapeRequest):
     )
     
     # Apply exact match filtering if requested
-    if req.exact_match_location or req.exact_match_title:
+    if req.exact_match_location or req.exact_match_title or req.salary or req.foreign_only or req.visa_sponsorship or req.remote_anywhere:
         import re
         filtered_jobs = []
         
@@ -247,6 +250,10 @@ def run_scraper_task(req: ScrapeRequest):
             print(f"Exact match location filter enabled for: '{req.location}'")
         if req.exact_match_title:
             print(f"Exact match title filter enabled for: '{req.title}'")
+        if req.salary:
+            print(f"Salary filter enabled: Min {req.salary}")
+        if req.foreign_only:
+            print(f"Foreign only filter enabled (excluding INR)")
         
         for job in jobs:
             keep_job = True
@@ -258,40 +265,96 @@ def run_scraper_task(req: ScrapeRequest):
                 job_state = job.get('state', '').lower().strip()
                 search_location = req.location.lower().strip()
                 
-                # Debug: Print first few jobs to see their location data
-                if len(filtered_jobs) < 3:
-                    print(f"  Job location fields: location='{job_location}', city='{job_city}', state='{job_state}'")
-                
                 # Create regex pattern to match search_location as a complete word
                 # \b ensures word boundaries, so "india" won't match "indianapolis"
-                pattern = r'\b' + re.escape(search_location) + r'\b'
-                
-                # Check if search location appears as a complete word in any location field
-                location_match = (
-                    re.search(pattern, job_location) is not None or
-                    re.search(pattern, job_city) is not None or
-                    re.search(pattern, job_state) is not None
-                )
-                
-                if len(filtered_jobs) < 3:
-                    print(f"  Pattern: '{pattern}', Match: {location_match}")
-                
-                if not location_match:
-                    keep_job = False
+                try:
+                    pattern = r'\b' + re.escape(search_location) + r'\b'
+                    
+                    # Check if search location appears as a complete word in any location field
+                    location_match = (
+                        re.search(pattern, job_location) is not None or
+                        re.search(pattern, job_city) is not None or
+                        re.search(pattern, job_state) is not None
+                    )
+                    
+                    if not location_match:
+                        keep_job = False
+                except Exception:
+                    pass # Regex error fallback
             
             # Check exact title match (exact match for title, not word boundary)
-            if req.exact_match_title and req.title:
+            if req.exact_match_title and req.title and keep_job:
                 job_title = job.get('title', '').lower().strip()
                 search_title = req.title.lower().strip()
                 
                 if search_title not in job_title:
+                    keep_job = False
+
+            # Salary Filtering
+            if req.salary and keep_job:
+                min_amount = job.get('min_amount')
+                # If we don't have salary info, we currently keep it (optional: make this strict?)
+                # For now, let's only filter OUT if we strictly know it's less than requested
+                if min_amount is not None:
+                     try:
+                         # Normalize to monthly/yearly? 
+                         # Usually JobSpy gives annual or hourly. 
+                         # This is a naive check assuming similar periods or user inputs annual
+                         if float(min_amount) < req.salary:
+                             keep_job = False
+                     except:
+                         pass
+
+            # Foreign/International Filtering
+            if req.foreign_only and keep_job:
+                currency = job.get('currency')
+                # Filter out known INR or India indicators if we want 'foreign only'
+                if currency and str(currency).upper() == 'INR':
+                    keep_job = False
+                # Double check location just in case currency is missing
+                job_loc = job.get('location', '').lower()
+                if 'india' in job_loc:
+                    keep_job = False
+
+            # Visa Sponsorship Filtering
+            if req.visa_sponsorship and keep_job:
+                description = job.get('description', '').lower()
+                # Keywords that suggest visa support
+                visa_keywords = [
+                    "visa sponsorship", "visa support", "visa sponsored", 
+                    "relocation support", "relocation assistance", "sponsorship available",
+                    "work permit support"
+                ]
+                # Check if ANY keyword is present
+                if not any(keyword in description for keyword in visa_keywords):
+                    keep_job = False
+
+            # Remote Anywhere Filtering
+            if req.remote_anywhere and keep_job:
+                location = job.get('location', '').lower()
+                description = job.get('description', '').lower()
+                job_type = job.get('job_type', '').lower()
+                
+                # Must be remote
+                is_remote = "remote" in location or "remote" in job_type
+                
+                # Must indicate "anywhere" or global scope
+                # "remote" in location alone isn't enough (could be "Remote, NY")
+                # We look for "anywhere", "worldwide", "global"
+                is_global = (
+                    "anywhere" in location or "worldwide" in location or "global" in location or
+                    "anywhere" in description or "worldwide" in description or "global" in description or
+                    "work from anywhere" in description
+                )
+                
+                if not (is_remote and is_global):
                     keep_job = False
             
             if keep_job:
                 filtered_jobs.append(job)
         
         jobs = filtered_jobs
-        print(f"After exact match filtering: {len(jobs)} jobs remain")
+        print(f"After filtering: {len(jobs)} jobs remain")
     
     # Add search metadata to each job
     for job in jobs:

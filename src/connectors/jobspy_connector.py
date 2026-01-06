@@ -107,6 +107,7 @@ class JobSpyConnector(BaseConnector):
                     "job_url": safe_value(row.get('job_url') or row.get('job_url_direct'), ''),
                     "description": safe_value(row.get('description'), ''),
                     "date_posted": safe_value(str(row.get('date_posted', '')), ''), # Ensure string for JSON serialization
+                    "currency": safe_value(row.get('currency'), None),
                     
                     # Internal metadata
                     "source": f"JobSpy - {safe_value(row.get('site'), 'Unknown')}",

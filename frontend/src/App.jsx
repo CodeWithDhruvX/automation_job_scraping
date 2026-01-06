@@ -30,6 +30,9 @@ function App() {
     resultsWanted: '50',  // Default safe limit
     exactMatchLocation: false,
     exactMatchTitle: false,
+    foreignOnly: false, // Added foreignOnly
+    visaSponsorship: false,
+    remoteAnywhere: false,
     sites: {
       linkedin: true,
       indeed: true,
@@ -113,6 +116,9 @@ function App() {
         salary: currentFilters.salaryMin ? parseInt(currentFilters.salaryMin) : null,
         exact_match_location: currentFilters.exactMatchLocation || false,
         exact_match_title: currentFilters.exactMatchTitle || false,
+        foreign_only: currentFilters.foreignOnly || false, // Added foreign_only
+        visa_sponsorship: currentFilters.visaSponsorship || false,
+        remote_anywhere: currentFilters.remoteAnywhere || false,
         clear_before_scrape: false  // Keep accumulating jobs from multiple searches
       })
 
