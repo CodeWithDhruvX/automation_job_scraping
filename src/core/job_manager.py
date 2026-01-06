@@ -119,11 +119,38 @@ class JobManager:
         self.save_data()
         return True
 
+    def delete_jobs_by_search_id(self, search_id: str):
+        """Deletes all jobs belonging to a specific search_id."""
+        initial_count = len(self.jobs)
+        if search_id == 'legacy':
+            # Delete jobs with no search_id
+            self.jobs = {url: job for url, job in self.jobs.items() if job.get('search_id')}
+        else:
+            # Delete jobs matching search_id
+            self.jobs = {url: job for url, job in self.jobs.items() if job.get('search_id') != search_id}
+        
+        if len(self.jobs) < initial_count:
+            self.save_data()
+            return True
+        return False
+
     def export_to_pandas(self, filters: Dict = None) -> pd.DataFrame:
         data = list(self.jobs.values())
         if not data:
             return pd.DataFrame()
         
+        # Apply filters if provided
+        if filters:
+            search_id = filters.get('search_id')
+            if search_id:
+                if search_id == 'legacy':
+                    data = [job for job in data if not job.get('search_id')]
+                elif search_id != 'all':
+                    data = [job for job in data if job.get('search_id') == search_id]
+        
+        if not data:
+            return pd.DataFrame()
+
         df = pd.DataFrame(data)
         
         # Renaissance of the UPPERCASE columns for Excel Export
@@ -144,7 +171,7 @@ class JobManager:
         }
         
         # Filter and rename
-        export_cols = ["SITE", "TITLE", "COMPANY", "CITY", "STATE", "JOB_TYPE", "INTERVAL", "MIN_AMOUNT", "MAX_AMOUNT", "JOB_URL", "DATE_POSTED"]
+        export_cols = ["SITE", "TITLE", "COMPANY", "CITY", "STATE", "JOB_TYPE", "INTERVAL", "MIN_AMOUNT", "MAX_AMOUNT", "JOB_URL", "DESCRIPTION", "DATE_POSTED"]
         
         # Rename existing columns
         df = df.rename(columns=rename_map)

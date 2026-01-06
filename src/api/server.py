@@ -47,11 +47,23 @@ def read_root():
     return {"status": "ok", "message": "Job Assistant API is running"}
 
 @app.get("/api/jobs")
-def get_jobs(status: Optional[str] = None):
-    """Get all jobs, optionally filtered by status."""
+def get_jobs(status: Optional[str] = None, search_id: Optional[str] = None):
+    """Get all jobs, optionally filtered by status and/or search_id."""
+    jobs = job_manager.get_all_jobs()
+    
+    # Filter by status if provided
     if status:
-        return job_manager.get_jobs_by_status(status)
-    return job_manager.get_all_jobs()
+        jobs = [job for job in jobs if job.get('my_status') == status]
+    
+    # Filter by search_id if provided
+    if search_id:
+        if search_id == 'legacy':
+            # Show jobs without search_id
+            jobs = [job for job in jobs if not job.get('search_id')]
+        else:
+            jobs = [job for job in jobs if job.get('search_id') == search_id]
+    
+    return jobs
 
 @app.post("/api/jobs/update")
 def update_job_status_post(payload: Dict[str, str]):
@@ -72,11 +84,57 @@ def clear_all_jobs():
     job_manager.clear_all_jobs()
     return {"message": "All jobs cleared successfully"}
 
+@app.get("/api/searches")
+def get_searches():
+    """Get all unique search sessions with metadata."""
+    all_jobs = job_manager.get_all_jobs()
+    
+    # Group jobs by search_id
+    searches_dict = {}
+    for job in all_jobs:
+        search_id = job.get('search_id')
+        if not search_id:
+            # Handle legacy jobs without search_id
+            search_id = 'legacy'
+        
+        if search_id not in searches_dict:
+            searches_dict[search_id] = {
+                'search_id': search_id,
+                'search_query': job.get('search_query', 'Unknown'),
+                'search_location': job.get('search_location', 'Unknown'),
+                'search_timestamp': job.get('search_timestamp', ''),
+                'search_sites': job.get('search_sites', ''),
+                'job_count': 0
+            }
+        
+        searches_dict[search_id]['job_count'] += 1
+    
+    # Convert to list and sort by timestamp (newest first)
+    searches_list = list(searches_dict.values())
+    searches_list.sort(key=lambda x: x['search_timestamp'], reverse=True)
+    
+    return searches_list
+
+@app.delete("/api/searches/{search_id}")
+def delete_search(search_id: str):
+    """Deletes a specific search session and its jobs."""
+    deleted = job_manager.delete_jobs_by_search_id(search_id)
+    if not deleted:
+         # It's possible the search ID exists but has no jobs (unlikely in this architecture but safely handled)
+         # Or it doesn't exist. We'll return success anyway to be idempotent-ish or 404 if strict.
+         # For UI simplicity, just return success message.
+         pass
+    return {"message": f"Search {search_id} deleted"}
+
 @app.get("/api/export")
-def export_jobs():
-    """Generates an Excel file of all jobs and returns it."""
+def export_jobs(search_id: Optional[str] = None):
+    """Generates an Excel file of jobs (filtered by search_id if provided) and returns it."""
     try:
-        df = job_manager.export_to_pandas()
+        filters = {}
+        if search_id and search_id != 'all':
+            filters['search_id'] = search_id
+            
+        df = job_manager.export_to_pandas(filters)
         if df.empty:
             raise HTTPException(status_code=404, detail="No jobs to export")
         
@@ -95,7 +153,13 @@ def export_jobs():
 
 def run_scraper_task(req: ScrapeRequest):
     """Background task to run scraper."""
-    print(f"Starting scrape for {req.title} in {req.location}")
+    import uuid
+    
+    # Generate unique search ID for this search session
+    search_id = str(uuid.uuid4())
+    search_timestamp = datetime.datetime.now().isoformat()
+    
+    print(f"Starting scrape for {req.title} in {req.location} (search_id: {search_id})")
     
     # Clear old jobs if requested
     if req.clear_before_scrape:
@@ -183,6 +247,14 @@ def run_scraper_task(req: ScrapeRequest):
         
         jobs = filtered_jobs
         print(f"After exact match filtering: {len(jobs)} jobs remain")
+    
+    # Add search metadata to each job
+    for job in jobs:
+        job['search_id'] = search_id
+        job['search_timestamp'] = search_timestamp
+        job['search_query'] = req.title
+        job['search_location'] = req.location
+        job['search_sites'] = ','.join(req.sites)
     
     # Save to manager
     new_count = job_manager.add_jobs(jobs)

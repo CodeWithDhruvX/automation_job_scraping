@@ -3,7 +3,7 @@ import axios from 'axios'
 import { JobTable } from './components/JobTable'
 import { FilterBar } from './components/FilterBar'
 import { SearchHistory } from './components/SearchHistory'
-import { LayoutDashboard, RefreshCw, Trash2 } from 'lucide-react'
+import { LayoutDashboard, RefreshCw, Trash2, X, Download } from 'lucide-react'
 
 // Configure Axios base URL
 const api = axios.create({
@@ -14,6 +14,8 @@ function App() {
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(false)
   const [scrapping, setScrapping] = useState(false)
+  const [searches, setSearches] = useState([]) // All search sessions
+  const [activeSearchId, setActiveSearchId] = useState('all') // Currently selected tab
 
   // Filter state with default values
   const [filters, setFilters] = useState({
@@ -40,10 +42,23 @@ function App() {
     return saved ? JSON.parse(saved) : []
   })
 
-  const fetchJobs = async () => {
+  const fetchSearches = async () => {
+    try {
+      const res = await api.get('/searches')
+      setSearches(res.data)
+    } catch (err) {
+      console.error("Failed to fetch searches", err)
+    }
+  }
+
+  const fetchJobs = async (searchId = null) => {
     setLoading(true)
     try {
-      const res = await api.get('/jobs')
+      const params = {}
+      if (searchId && searchId !== 'all') {
+        params.search_id = searchId
+      }
+      const res = await api.get('/jobs', { params })
       setJobs(res.data)
     } catch (err) {
       console.error("Failed to fetch jobs", err)
@@ -53,8 +68,9 @@ function App() {
   }
 
   useEffect(() => {
-    fetchJobs()
-  }, [])
+    fetchJobs(activeSearchId)
+    fetchSearches()
+  }, [activeSearchId])
 
   const handleScrape = async (currentFilters) => {
     setScrapping(true)
@@ -90,9 +106,10 @@ function App() {
 
       alert("Scraping started! New jobs will load shortly.")
 
-      // Automatically fetch the new jobs after a short delay
+      // Automatically fetch the new jobs and searches after a short delay
       setTimeout(() => {
-        fetchJobs()
+        fetchJobs(activeSearchId)
+        fetchSearches()
       }, 2000)
     } catch (err) {
       alert("Failed to start scrape: " + err.message)
@@ -127,9 +144,13 @@ function App() {
     }
   }
 
-  const handleExport = async () => {
+  const handleExport = async (searchId = activeSearchId) => {
     try {
-      const response = await api.get('/export', { responseType: 'blob' })
+      const params = {}
+      if (searchId && searchId !== 'all') {
+        params.search_id = searchId
+      }
+      const response = await api.get('/export', { params, responseType: 'blob' })
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement('a')
       link.href = url
@@ -147,9 +168,54 @@ function App() {
       try {
         await api.delete('/jobs/clear')
         setJobs([])
+        setSearches([])
+        setActiveSearchId('all')
         alert('All jobs cleared successfully!')
       } catch (err) {
         alert('Failed to clear jobs: ' + err.message)
+      }
+    }
+  }
+
+  const handleTabClick = (searchId) => {
+    setActiveSearchId(searchId)
+  }
+
+  const handleDeleteSearch = async (e, searchId) => {
+    e.stopPropagation() // Prevent tab click
+    if (window.confirm('Are you sure you want to close this tab? Jobs in this search will be removed.')) {
+      try {
+        await api.delete(`/searches/${searchId}`)
+        // Update local state
+        const newSearches = searches.filter(s => s.search_id !== searchId)
+        setSearches(newSearches)
+
+        // If deleted active tab, switch to 'all'
+        if (activeSearchId === searchId) {
+          setActiveSearchId('all')
+        } else {
+          // If deleted another tab, fetch 'all' or currently active jobs to update counts or remove deleted jobs if they were part of current view?
+          // Actually if we are in 'all' view, we should refresh jobs to remove the deleted ones
+          if (activeSearchId === 'all') {
+            fetchJobs('all')
+          }
+        }
+
+        // Refresh searches list from server to be sure
+        fetchSearches()
+
+        // If we switched to all, fetch jobs for all
+        if (activeSearchId === searchId) {
+          // setTimeout to allow state update? No, just call plain
+          // create a helper or just re-call fetchJobs
+          // But since activeIds changed, useEffect will trigger? 
+          // Yes useEffect depends on activeSearchId.
+          // BUT: if we were already on 'all', activeSearchId didn't change, so useEffect won't fire.
+          // So if we were on 'all', we must manually refresh.
+        }
+
+      } catch (err) {
+        alert('Failed to delete search: ' + err.message)
       }
     }
   }
@@ -209,6 +275,57 @@ function App() {
           </div>
         </div>
 
+
+
+        {/* Search Tabs */}
+        {
+          searches.length > 0 && (
+            <div className="border-b border-slate-200 overflow-x-auto">
+              <nav className="flex space-x-4 pb-1 min-w-max" aria-label="Tabs">
+                <button
+                  onClick={() => handleTabClick('all')}
+                  className={`
+                  px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 
+                  ${activeSearchId === 'all'
+                      ? 'border-blue-600 text-blue-600 bg-white'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                    }
+                `}
+                >
+                  All Jobs
+                </button>
+
+                {searches.map((search) => (
+                  <button
+                    key={search.search_id}
+                    onClick={() => handleTabClick(search.search_id)}
+                    className={`
+                    px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 flex flex-col items-start relative group pr-8
+                    ${activeSearchId === search.search_id
+                        ? 'border-blue-600 text-blue-600 bg-white'
+                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                      }
+                  `}
+                  >
+                    <span className="whitespace-nowrap">{search.search_query}</span>
+                    <span className="text-xs opacity-70 whitespace-nowrap">
+                      {search.search_location} • {search.job_count} jobs
+                    </span>
+
+                    <div
+                      onClick={(e) => handleDeleteSearch(e, search.search_id)}
+                      className="absolute right-1 top-2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                      title="Close tab and delete jobs"
+                    >
+                      <X size={14} />
+                    </div>
+                  </button>
+                ))}
+              </nav>
+            </div>
+          )
+        }
+
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -227,14 +344,24 @@ function App() {
               {jobs.filter(j => j.my_status === 'APPLIED').length}
             </div>
           </div>
+          <div className="h-full">
+            <button
+              onClick={() => handleExport()}
+              className="w-full h-full min-h-[80px] flex flex-col items-center justify-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-700 font-medium hover:bg-indigo-100 transition-colors shadow-sm"
+              title="Export jobs for current tab to Excel"
+            >
+              <Download size={24} />
+              <span>Export {activeSearchId === 'all' ? 'All' : 'Tab'} Data</span>
+            </button>
+          </div>
         </div>
 
         {/* Job Table */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden min-h-[500px]">
           <JobTable jobs={jobs} />
         </div>
-      </main>
-    </div>
+      </main >
+    </div >
   )
 }
 
