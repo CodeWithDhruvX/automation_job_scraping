@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell } from 'lucide-react'
+import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText } from 'lucide-react'
 import { ReminderModal } from './ReminderModal'
 
 const api = axios.create({
@@ -11,6 +11,8 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
     const [selectedJob, setSelectedJob] = useState(null)
     const [reminderJob, setReminderJob] = useState(null)
     const [copied, setCopied] = useState(false)
+    const [linkCopied, setLinkCopied] = useState(false)
+    const [mdCopied, setMdCopied] = useState(false)
     const [loadingDesc, setLoadingDesc] = useState(false)
     const [filters, setFilters] = useState({})
     const [activeFilterColumn, setActiveFilterColumn] = useState(null)
@@ -63,6 +65,29 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
             setTimeout(() => setCopied(false), 2000)
         } catch (err) {
             console.error('Failed to copy:', err)
+        }
+    }
+
+    const handleCopyLink = async () => {
+        if (!selectedJob) return
+        try {
+            await navigator.clipboard.writeText(selectedJob.job_url)
+            setLinkCopied(true)
+            setTimeout(() => setLinkCopied(false), 2000)
+        } catch (err) {
+            console.error('Failed to copy link:', err)
+        }
+    }
+
+    const handleCopyMarkdown = async () => {
+        if (!selectedJob) return
+        const text = `[${selectedJob.title}](${selectedJob.job_url})`
+        try {
+            await navigator.clipboard.writeText(text)
+            setMdCopied(true)
+            setTimeout(() => setMdCopied(false), 2000)
+        } catch (err) {
+            console.error('Failed to copy markdown:', err)
         }
     }
 
@@ -381,14 +406,32 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                             <div className="prose prose-slate max-w-none">
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="text-sm uppercase tracking-wider font-bold text-slate-400 m-0">Description</h3>
-                                    <button
-                                        onClick={handleCopy}
-                                        className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all font-medium"
-                                        title="Copy Title & Description"
-                                    >
-                                        {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
-                                        {copied ? <span className="text-green-600">Copied</span> : "Copy Info"}
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleCopyLink}
+                                            className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all font-medium"
+                                            title="Copy Job URL"
+                                        >
+                                            {linkCopied ? <Check size={14} className="text-green-600" /> : <Link size={14} />}
+                                            {linkCopied ? <span className="text-green-600">Copied</span> : "Link"}
+                                        </button>
+                                        <button
+                                            onClick={handleCopyMarkdown}
+                                            className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all font-medium"
+                                            title="Copy Markdown Link"
+                                        >
+                                            {mdCopied ? <Check size={14} className="text-green-600" /> : <FileText size={14} />}
+                                            {mdCopied ? <span className="text-green-600">Copied</span> : "Markdown"}
+                                        </button>
+                                        <button
+                                            onClick={handleCopy}
+                                            className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all font-medium"
+                                            title="Copy Title & Description"
+                                        >
+                                            {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                                            {copied ? <span className="text-green-600">Copied</span> : "Copy Info"}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="whitespace-pre-wrap font-sans text-base text-slate-800">
                                     {loadingDesc ? (
