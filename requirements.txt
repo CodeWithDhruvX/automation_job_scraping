@@ -14,3 +14,4 @@ pydantic
 google-auth-oauthlib
 google-api-python-client
 O365
+cryptography

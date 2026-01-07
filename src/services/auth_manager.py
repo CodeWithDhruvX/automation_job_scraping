@@ -57,6 +57,7 @@ class AuthManager:
 
     def get_account(self, account_id: str) -> Optional[Dict]:
         """Returns the full account dict including tokens."""
+        self.tokens = self._load_tokens()
         for acc in self.tokens["accounts"]:
             if acc["id"] == account_id:
                 return acc
@@ -64,6 +65,7 @@ class AuthManager:
 
     def list_accounts(self) -> List[Dict]:
         """Returns public info (id, provider, email) for all accounts."""
+        self.tokens = self._load_tokens()
         return [{
             "id": acc["id"],
             "provider": acc["provider"],

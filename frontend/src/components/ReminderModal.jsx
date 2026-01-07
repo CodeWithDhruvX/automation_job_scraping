@@ -18,22 +18,51 @@ export function ReminderModal({ job, onClose }) {
         const d = new Date()
         d.setDate(d.getDate() + 1)
         d.setHours(9, 0, 0, 0)
-        // Format for datetime-local input: YYYY-MM-DDTHH:mm
-        const iso = d.toISOString().slice(0, 16)
-        setDateTime(iso)
+
+        // Correctly format for local timezone input [YYYY-MM-DDTHH:mm]
+        // toISOString() converts to UTC, so we shift by offset to get local numbers in the string
+        const offsetDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000))
+        const localIso = offsetDate.toISOString().slice(0, 16)
+
+        setDateTime(localIso)
 
         fetchAccounts()
     }, [])
+    const [description, setDescription] = useState(job.description || '')
+    const [fetchingDesc, setFetchingDesc] = useState(false)
+
+
+
+    useEffect(() => {
+        if (!job.description && !description) {
+            setFetchingDesc(true)
+            api.post('/jobs/fetch_desc', { url: job.job_url })
+                .then(res => {
+                    setDescription(res.data.description)
+                })
+                .catch(err => console.error("Failed to fetch desc for reminder", err))
+                .finally(() => setFetchingDesc(false))
+        }
+    }, [job])
 
     const fetchAccounts = async () => {
         try {
             const res = await api.get('/auth/accounts')
-            setAccounts(res.data)
-            if (res.data.length > 0) {
-                setSelectedAccount(res.data[0].id)
+            // Inject static Outlook Web option
+            const allAccounts = [
+                ...res.data,
+                { id: 'outlook-web', provider: 'Outlook Web (No Login)', email: 'External', isStatic: true }
+            ]
+            setAccounts(allAccounts)
+            if (allAccounts.length > 0) {
+                // Default to the first one if not set
+                if (!selectedAccount) setSelectedAccount(allAccounts[0].id)
             }
         } catch (err) {
             console.error(err)
+            // Even on error, show Outlook Web
+            setAccounts([{ id: 'outlook-web', provider: 'Outlook Web (No Login)', email: 'External', isStatic: true }])
+            setSelectedAccount('outlook-web')
         } finally {
             setLoading(false)
         }
@@ -42,17 +71,67 @@ export function ReminderModal({ job, onClose }) {
     const handleSubmit = async () => {
         if (!selectedAccount) return
         setSubmitting(true)
+
         try {
+            // Handle Static Outlook Web
+            if (selectedAccount === 'outlook-web') {
+                if (reminderType === 'calendar') {
+                    const start = new Date(dateTime)
+                    const end = new Date(start.getTime() + 30 * 60000) // 30 mins
+
+                    const subject = encodeURIComponent(`Follow up: ${job.title}`)
+
+                    // Truncate description to avoid URL length issues (approx 2000 chars safe)
+                    const descText = description || ''
+                    const truncatedDesc = descText.length > 1500 ? descText.substring(0, 1500) + '...' : descText
+
+                    const bodyContent = `Follow up on application for ${job.title} at ${job.company}.\n\nLink: ${job.job_url}\n\nDescription:\n${truncatedDesc}`
+                    const body = encodeURIComponent(bodyContent)
+
+                    // Construct Floating Time (Local Clock Time) for Outlook
+                    // Outlook treats YYYY-MM-DDTHH:mm:ss without Z as strict local time
+                    const formatLocal = (d) => {
+                        const pad = n => n < 10 ? '0' + n : n
+                        return d.getFullYear() + '-' +
+                            pad(d.getMonth() + 1) + '-' +
+                            pad(d.getDate()) + 'T' +
+                            pad(d.getHours()) + ':' +
+                            pad(d.getMinutes()) + ':' +
+                            pad(d.getSeconds())
+                    }
+
+                    const startStr = formatLocal(start)
+                    const endStr = formatLocal(end)
+
+                    const url = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&startdt=${startStr}&enddt=${endStr}&subject=${subject}&body=${body}`
+
+                    window.open(url, '_blank')
+                } else {
+                    // Mailto for email
+                    const subject = encodeURIComponent(`Reminder: ${job.title}`)
+                    const body = encodeURIComponent(`Don't forget to check on this job:\n\n${job.title} at ${job.company}\n\nLink: ${job.job_url}`)
+                    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank')
+                }
+
+                setStep('success')
+                setTimeout(() => {
+                    onClose()
+                }, 2000)
+                setSubmitting(false)
+                return
+            }
+
+            // Regular Backend API Call for connected accounts
             if (reminderType === 'calendar') {
                 await api.post('/reminders/calendar', {
                     account_id: selectedAccount,
-                    job_details: job,
+                    job_details: { ...job, description }, // Pass potentially fetched description
                     time: new Date(dateTime).toISOString()
                 })
             } else {
                 await api.post('/reminders/email', {
                     account_id: selectedAccount,
-                    job_details: job
+                    job_details: { ...job, description }
                 })
             }
             setStep('success')
@@ -113,7 +192,9 @@ export function ReminderModal({ job, onClose }) {
                                     onChange={e => setSelectedAccount(e.target.value)}
                                 >
                                     {accounts.map(acc => (
-                                        <option key={acc.id} value={acc.id}>{acc.provider} ({acc.email})</option>
+                                        <option key={acc.id} value={acc.id}>
+                                            {acc.isStatic ? acc.provider : `${acc.provider} (${acc.email})`}
+                                        </option>
                                     ))}
                                 </select>
                             </div>

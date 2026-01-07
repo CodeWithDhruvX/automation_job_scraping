@@ -103,13 +103,7 @@ export function SettingsModal({ onClose }) {
                             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
                             Connect Google Account
                         </button>
-                        <button
-                            onClick={() => handleConnect('outlook')}
-                            className="w-full flex items-center justify-center gap-2 p-3 bg-white border border-slate-300 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
-                        >
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg" alt="Outlook" className="w-5 h-5" />
-                            Connect Outlook Account
-                        </button>
+
                     </div>
                 </div>
 
