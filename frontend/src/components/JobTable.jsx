@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, Trash2 } from 'lucide-react'
+import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, Trash2, Search } from 'lucide-react'
 import { ReminderModal } from './ReminderModal'
 
 const api = axios.create({
@@ -16,6 +16,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
     const [loadingDesc, setLoadingDesc] = useState(false)
     const [filters, setFilters] = useState({})
     const [activeFilterColumn, setActiveFilterColumn] = useState(null)
+    const [globalSearchTerm, setGlobalSearchTerm] = useState('')
 
     // Column Definitions for consistency between display and filtering
     // Column Definitions for consistency between display and filtering
@@ -119,6 +120,29 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
     // Apply filters
     const filteredJobs = useMemo(() => {
         return jobs.filter(job => {
+            // Global Search Filter
+            if (globalSearchTerm) {
+                const term = globalSearchTerm.toLowerCase()
+
+                // Fields to search in
+                const searchableFields = [
+                    job.title,
+                    job.company,
+                    job.location,
+                    job.site,
+                    job.job_type,
+                    job.my_status,
+                    job.description // Optional: Search description too? Might be slow if large text, but useful.
+                ]
+
+                const matchesSearch = searchableFields.some(field =>
+                    field && String(field).toLowerCase().includes(term)
+                )
+
+                if (!matchesSearch) return false
+            }
+
+            // Column Filters
             return COLUMN_DEFS.every(col => {
                 const selectedValues = filters[col.key]
                 if (selectedValues === undefined) return true
@@ -127,7 +151,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                 return selectedValues.includes(value)
             })
         })
-    }, [jobs, filters, COLUMN_DEFS])
+    }, [jobs, filters, COLUMN_DEFS, globalSearchTerm])
 
     // Notify parent of filtered data
     useEffect(() => {
@@ -182,6 +206,27 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
 
     return (
         <>
+            <div className="p-4 border-b border-slate-200 bg-white flex items-center gap-4">
+                <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <input
+                        type="text"
+                        placeholder="Search jobs..."
+                        className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                        value={globalSearchTerm}
+                        onChange={(e) => setGlobalSearchTerm(e.target.value)}
+                    />
+                    {globalSearchTerm && (
+                        <button
+                            onClick={() => setGlobalSearchTerm('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                            <X size={16} />
+                        </button>
+                    )}
+                </div>
+            </div>
+
             <div className="overflow-visible min-h-[400px]">
                 <table className="w-full text-left text-sm text-slate-600 relative">
                     <thead className="bg-slate-50 text-slate-900 font-medium border-b border-slate-200">
