@@ -103,7 +103,8 @@ export function ReminderModal({ job, onClose }) {
                     const startStr = formatLocal(start)
                     const endStr = formatLocal(end)
 
-                    const url = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&startdt=${startStr}&enddt=${endStr}&subject=${subject}&body=${body}`
+                    const location = encodeURIComponent(job.location || '')
+                    const url = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&startdt=${startStr}&enddt=${endStr}&subject=${subject}&body=${body}&location=${location}`
 
                     window.open(url, '_blank')
                 } else {
