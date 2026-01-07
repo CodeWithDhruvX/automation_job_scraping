@@ -128,6 +128,41 @@ class JobManager:
         self.save_data()
         return True
 
+    def clear_jobs_safe(self, preserve_saved: bool = True, exception_search_ids: List[str] = None):
+        """
+        Clears jobs but preserves those matching criteria.
+        :param preserve_saved: If True, keeps jobs with my_status='SAVED'
+        :param exception_search_ids: List of search_ids to preserve (e.g. Smart Tabs)
+        """
+        if exception_search_ids is None:
+            exception_search_ids = []
+            
+        initial_count = len(self.jobs)
+        new_jobs = {}
+        
+        for url, job in self.jobs.items():
+            should_keep = False
+            
+            # Check Saved
+            if preserve_saved and job.get('my_status') == 'SAVED':
+                should_keep = True
+                
+            # Check Exception Search IDs
+            if not should_keep and exception_search_ids:
+                job_search_id = job.get('search_id')
+                if job_search_id and job_search_id in exception_search_ids:
+                    should_keep = True
+            
+            if should_keep:
+                new_jobs[url] = job
+                
+        self.jobs = new_jobs
+        
+        if len(self.jobs) < initial_count:
+            self.save_data()
+            return initial_count - len(self.jobs) # Returns number of deleted jobs
+        return 0
+
     def delete_jobs_by_search_id(self, search_id: str):
         """Deletes all jobs belonging to a specific search_id."""
         initial_count = len(self.jobs)

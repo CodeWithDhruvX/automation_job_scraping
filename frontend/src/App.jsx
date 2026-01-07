@@ -279,11 +279,20 @@ function App() {
   const handleClearAllJobs = async () => {
     if (window.confirm('Are you sure you want to clear all jobs? This action cannot be undone.')) {
       try {
-        await api.delete('/jobs/clear')
-        setJobs([])
-        setSearches([])
-        setActiveSearchId('all')
-        alert('All jobs cleared successfully!')
+        await api.post('/jobs/clear-dashboard', {
+          preserve_saved: true,
+          exception_search_ids: smartTabIds
+        })
+
+        // Refresh everything to reflect state
+        await fetchJobs(activeSearchId)
+        await fetchSearches()
+
+        // Optimistically update local state if we want to avoid flicker, 
+        // but fetching is safer to ensure sync with backend logic.
+        // For 'all' tab, we might still see saved jobs and smart tab jobs, which is correct.
+
+        alert('Dashboard jobs cleared successfully! Saved jobs and Smart Tabs are preserved.')
       } catch (err) {
         alert('Failed to clear jobs: ' + err.message)
       }
@@ -373,6 +382,38 @@ function App() {
         alert('Imported jobs deleted successfully.')
       } catch (err) {
         alert('Failed to delete imported jobs: ' + err.message)
+      }
+    }
+  }
+
+  const handleDeleteAllSaved = async () => {
+    if (window.confirm('Are you sure you want to delete ALL saved jobs? This cannot be undone.')) {
+      try {
+        const urls = savedJobs.map(j => j.job_url)
+        // We delete them from backend too if they are just saved? 
+        // Wait, "Saved" jobs might also be in "All Jobs". 
+        // If we "Delete" from Saved tab, do we just "Unsave" them or "Delete" them from DB?
+        // The user request says "saved job also have the delete and delete all ... just like import tab functionality"
+        // Import tab functionality deletes from DB.
+        // So we should probably delete from DB.
+
+        await api.post('/jobs/delete-list', { urls })
+
+        setSavedJobs([])
+        localStorage.setItem('savedJobs', JSON.stringify([]))
+
+        // Update main job list if we are viewing it
+        if (activeSearchId === 'saved') {
+          setJobs([])
+        }
+
+        // Remove from allJobs/jobs
+        setAllJobs(prev => prev.filter(j => !urls.includes(j.job_url)))
+        setJobs(prev => prev.filter(j => !urls.includes(j.job_url)))
+
+        alert('All saved jobs deleted successfully.')
+      } catch (err) {
+        alert('Failed to delete saved jobs: ' + err.message)
       }
     }
   }
@@ -709,11 +750,11 @@ function App() {
               <Download size={24} />
               <span>Export {activeSearchId === 'all' ? 'All' : 'Tab'} Data</span>
             </button>
-            {activeSearchId.startsWith('import_') && (
+            {(activeSearchId.startsWith('import_') || activeSearchId === 'saved') && (
               <button
-                onClick={selectedJobUrls.length > 0 ? handleDeleteSelected : handleDeleteAllImported}
+                onClick={selectedJobUrls.length > 0 ? handleDeleteSelected : (activeSearchId === 'saved' ? handleDeleteAllSaved : handleDeleteAllImported)}
                 className={`w-1/3 h-full min-h-[80px] flex flex-col items-center justify-center gap-2 bg-red-50 border border-red-200 rounded-xl text-red-700 font-medium hover:bg-red-100 transition-colors shadow-sm`}
-                title={selectedJobUrls.length > 0 ? "Delete selected jobs" : "Delete all jobs in this import"}
+                title={selectedJobUrls.length > 0 ? "Delete selected jobs" : "Delete all jobs in this list"}
               >
                 <Trash2 size={24} />
                 <span>{selectedJobUrls.length > 0 ? `Delete Selected (${selectedJobUrls.length})` : 'Delete All'}</span>
@@ -731,7 +772,7 @@ function App() {
             onFilteredData={handleFilteredData}
             selectedJobUrls={selectedJobUrls}
             onSelectionChange={setSelectedJobUrls}
-            onDeleteJob={activeSearchId.startsWith('import_') ? handleDeleteJob : null}
+            onDeleteJob={activeSearchId.startsWith('import_') || activeSearchId === 'saved' ? handleDeleteJob : null}
           />
         </div>
       </main >
