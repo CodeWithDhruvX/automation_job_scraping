@@ -1,0 +1,245 @@
+import { useState, useEffect } from 'react'
+import axios from 'axios'
+import { X, Calendar, Mail, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+
+const api = axios.create({ baseURL: 'http://localhost:8000/api' })
+
+export function ReminderModal({ job, onClose }) {
+    const [accounts, setAccounts] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [submitting, setSubmitting] = useState(false)
+    const [step, setStep] = useState('select') // select, form, success
+    const [selectedAccount, setSelectedAccount] = useState(null)
+    const [reminderType, setReminderType] = useState('calendar') // calendar, email
+    const [dateTime, setDateTime] = useState('')
+
+    // Set default datetime to tomorrow 9am
+    useEffect(() => {
+        const d = new Date()
+        d.setDate(d.getDate() + 1)
+        d.setHours(9, 0, 0, 0)
+
+        // Correctly format for local timezone input [YYYY-MM-DDTHH:mm]
+        // toISOString() converts to UTC, so we shift by offset to get local numbers in the string
+        const offsetDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000))
+        const localIso = offsetDate.toISOString().slice(0, 16)
+
+        setDateTime(localIso)
+
+        fetchAccounts()
+    }, [])
+    const [description, setDescription] = useState(job.description || '')
+    const [fetchingDesc, setFetchingDesc] = useState(false)
+
+
+
+    useEffect(() => {
+        if (!job.description && !description) {
+            setFetchingDesc(true)
+            api.post('/jobs/fetch_desc', { url: job.job_url })
+                .then(res => {
+                    setDescription(res.data.description)
+                })
+                .catch(err => console.error("Failed to fetch desc for reminder", err))
+                .finally(() => setFetchingDesc(false))
+        }
+    }, [job])
+
+    const fetchAccounts = async () => {
+        try {
+            const res = await api.get('/auth/accounts')
+            // Inject static Outlook Web option
+            const allAccounts = [
+                ...res.data,
+                { id: 'outlook-web', provider: 'Outlook Web (No Login)', email: 'External', isStatic: true }
+            ]
+            setAccounts(allAccounts)
+            if (allAccounts.length > 0) {
+                // Default to the first one if not set
+                if (!selectedAccount) setSelectedAccount(allAccounts[0].id)
+            }
+        } catch (err) {
+            console.error(err)
+            // Even on error, show Outlook Web
+            setAccounts([{ id: 'outlook-web', provider: 'Outlook Web (No Login)', email: 'External', isStatic: true }])
+            setSelectedAccount('outlook-web')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleSubmit = async () => {
+        if (!selectedAccount) return
+        setSubmitting(true)
+
+        try {
+            // Handle Static Outlook Web
+            if (selectedAccount === 'outlook-web') {
+                if (reminderType === 'calendar') {
+                    const start = new Date(dateTime)
+                    const end = new Date(start.getTime() + 30 * 60000) // 30 mins
+
+                    const subject = encodeURIComponent(`Follow up: ${job.title}`)
+
+                    // Truncate description to avoid URL length issues (approx 2000 chars safe)
+                    const descText = description || ''
+                    const truncatedDesc = descText.length > 1500 ? descText.substring(0, 1500) + '...' : descText
+
+                    const bodyContent = `Follow up on application for ${job.title} at ${job.company}.\n\nLink: ${job.job_url}\n\nDescription:\n${truncatedDesc}`
+                    const body = encodeURIComponent(bodyContent)
+
+                    // Construct Floating Time (Local Clock Time) for Outlook
+                    // Outlook treats YYYY-MM-DDTHH:mm:ss without Z as strict local time
+                    const formatLocal = (d) => {
+                        const pad = n => n < 10 ? '0' + n : n
+                        return d.getFullYear() + '-' +
+                            pad(d.getMonth() + 1) + '-' +
+                            pad(d.getDate()) + 'T' +
+                            pad(d.getHours()) + ':' +
+                            pad(d.getMinutes()) + ':' +
+                            pad(d.getSeconds())
+                    }
+
+                    const startStr = formatLocal(start)
+                    const endStr = formatLocal(end)
+
+                    const url = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&startdt=${startStr}&enddt=${endStr}&subject=${subject}&body=${body}`
+
+                    window.open(url, '_blank')
+                } else {
+                    // Mailto for email
+                    const subject = encodeURIComponent(`Reminder: ${job.title}`)
+                    const body = encodeURIComponent(`Don't forget to check on this job:\n\n${job.title} at ${job.company}\n\nLink: ${job.job_url}`)
+                    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank')
+                }
+
+                setStep('success')
+                setTimeout(() => {
+                    onClose()
+                }, 2000)
+                setSubmitting(false)
+                return
+            }
+
+            // Regular Backend API Call for connected accounts
+            if (reminderType === 'calendar') {
+                await api.post('/reminders/calendar', {
+                    account_id: selectedAccount,
+                    job_details: { ...job, description }, // Pass potentially fetched description
+                    time: new Date(dateTime).toISOString()
+                })
+            } else {
+                await api.post('/reminders/email', {
+                    account_id: selectedAccount,
+                    job_details: { ...job, description }
+                })
+            }
+            setStep('success')
+            setTimeout(() => {
+                onClose()
+            }, 2000)
+        } catch (err) {
+            alert("Failed to set reminder: " + (err.response?.data?.detail || err.message))
+        } finally {
+            setSubmitting(false)
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+            <div
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+                onClick={onClose}
+            />
+            <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/50">
+                    <h3 className="font-bold text-slate-900">Set Reminder</h3>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className="p-6">
+                    {loading ? (
+                        <div className="flex justify-center py-8"><Loader2 className="animate-spin text-blue-500" /></div>
+                    ) : accounts.length === 0 ? (
+                        <div className="text-center space-y-4">
+                            <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto">
+                                <AlertCircle size={24} />
+                            </div>
+                            <p className="text-slate-600">You haven't connected any accounts yet.</p>
+                            <button
+                                onClick={() => { onClose(); window.location.href = '/settings?open=true' }} // Hacky navigation or just tell them
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium"
+                            >
+                                Connect Account (Go to Settings)
+                            </button>
+                        </div>
+                    ) : step === 'success' ? (
+                        <div className="text-center space-y-4 py-8">
+                            <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
+                                <CheckCircle size={24} />
+                            </div>
+                            <p className="text-lg font-medium text-slate-900">Reminder Set!</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Account</label>
+                                <select
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value={selectedAccount || ''}
+                                    onChange={e => setSelectedAccount(e.target.value)}
+                                >
+                                    {accounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>
+                                            {acc.isStatic ? acc.provider : `${acc.provider} (${acc.email})`}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex gap-2 p-1 bg-slate-100 rounded-lg">
+                                <button
+                                    className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${reminderType === 'calendar' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    onClick={() => setReminderType('calendar')}
+                                >
+                                    Calendar Event
+                                </button>
+                                <button
+                                    className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${reminderType === 'email' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    onClick={() => setReminderType('email')}
+                                >
+                                    Email Self
+                                </button>
+                            </div>
+
+                            {reminderType === 'calendar' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">When?</label>
+                                    <input
+                                        type="datetime-local"
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        value={dateTime}
+                                        onChange={e => setDateTime(e.target.value)}
+                                    />
+                                </div>
+                            )}
+
+                            <div className="pt-2">
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={submitting}
+                                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {submitting && <Loader2 size={16} className="animate-spin" />}
+                                    {reminderType === 'calendar' ? 'Add to Calendar' : 'Send Email'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+}

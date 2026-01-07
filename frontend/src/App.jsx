@@ -3,7 +3,8 @@ import axios from 'axios'
 import { JobTable } from './components/JobTable'
 import { FilterBar } from './components/FilterBar'
 import { SearchHistory } from './components/SearchHistory'
-import { LayoutDashboard, RefreshCw, Trash2, X, Download, ExternalLink } from 'lucide-react'
+import { SettingsModal } from './components/SettingsModal'
+import { LayoutDashboard, RefreshCw, Trash2, X, Download, ExternalLink, Settings } from 'lucide-react'
 
 // Configure Axios base URL
 const api = axios.create({
@@ -14,24 +15,25 @@ function App() {
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(false)
   const [scrapping, setScrapping] = useState(false)
-  const [searches, setSearches] = useState([]) // All search sessions
-  const [activeSearchId, setActiveSearchId] = useState('all') // Currently selected tab
-  const [filteredJobUrls, setFilteredJobUrls] = useState(null) // Track currently visible jobs for export
-  const [selectedJobUrls, setSelectedJobUrls] = useState([]) // Track selected jobs for opening in new tab
+  const [searches, setSearches] = useState([])
+  const [activeSearchId, setActiveSearchId] = useState('all')
+  const [filteredJobUrls, setFilteredJobUrls] = useState(null)
+  const [selectedJobUrls, setSelectedJobUrls] = useState([])
+  const [showSettings, setShowSettings] = useState(false)
 
-  // Filter state with default values
+  // Filter state
   const [filters, setFilters] = useState({
     title: '',
     location: '',
     experience: '',
     datePosted: '72',
-    jobType: '', // Added jobType
+    jobType: '',
     salaryMin: '',
     salaryMax: '',
-    resultsWanted: '50',  // Default safe limit
+    resultsWanted: '50',
     exactMatchLocation: false,
     exactMatchTitle: false,
-    foreignOnly: false, // Added foreignOnly
+    foreignOnly: false,
     visaSponsorship: false,
     remoteAnywhere: false,
     sites: {
@@ -54,6 +56,16 @@ function App() {
     const saved = localStorage.getItem('savedJobs')
     return saved ? JSON.parse(saved) : []
   })
+
+  // Check URL params for settings
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('open') === 'true' || params.get('status') === 'success') {
+      setShowSettings(true)
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [])
 
   const fetchSearches = async () => {
     try {
@@ -92,9 +104,6 @@ function App() {
 
   const handleScrape = async (currentFilters) => {
     setScrapping(true)
-    // Don't clear jobs - allow accumulation from multiple searches
-    // setJobs([])  // REMOVED: Was clearing jobs on each new search
-
     try {
       const activeSites = Object.entries(currentFilters.sites)
         .filter(([_, active]) => active)
@@ -112,23 +121,20 @@ function App() {
         sites: activeSites,
         results_wanted: parseInt(currentFilters.resultsWanted) || 50,
         hours_old: parseInt(currentFilters.datePosted),
-        job_type: currentFilters.jobType, // Added job_type
+        job_type: currentFilters.jobType,
         experience: currentFilters.experience,
         salary: currentFilters.salaryMin ? parseInt(currentFilters.salaryMin) : null,
         exact_match_location: currentFilters.exactMatchLocation || false,
         exact_match_title: currentFilters.exactMatchTitle || false,
-        foreign_only: currentFilters.foreignOnly || false, // Added foreign_only
+        foreign_only: currentFilters.foreignOnly || false,
         visa_sponsorship: currentFilters.visaSponsorship || false,
         remote_anywhere: currentFilters.remoteAnywhere || false,
-        clear_before_scrape: false  // Keep accumulating jobs from multiple searches
+        clear_before_scrape: false
       })
 
-      // Add to search history
       addToSearchHistory(currentFilters)
-
       alert("Scraping started! New jobs will load shortly.")
 
-      // Automatically fetch the new jobs and searches after a short delay
       setTimeout(() => {
         fetchJobs(activeSearchId)
         fetchSearches()
@@ -140,7 +146,6 @@ function App() {
     }
   }
 
-  // Add search to history
   const addToSearchHistory = (currentFilters) => {
     const newHistoryItem = {
       id: Date.now(),
@@ -148,13 +153,11 @@ function App() {
       isSaved: false,
       filters: { ...currentFilters }
     }
-
-    const updatedHistory = [newHistoryItem, ...searchHistory].slice(0, 50) // Increased limit to allow for saved items
+    const updatedHistory = [newHistoryItem, ...searchHistory].slice(0, 50)
     setSearchHistory(updatedHistory)
     localStorage.setItem('searchHistory', JSON.stringify(updatedHistory))
   }
 
-  // Toggle saved status of a history item
   const handleToggleSavedHistory = (id) => {
     const updatedHistory = searchHistory.map(item =>
       item.id === id ? { ...item, isSaved: !item.isSaved } : item
@@ -163,12 +166,10 @@ function App() {
     localStorage.setItem('searchHistory', JSON.stringify(updatedHistory))
   }
 
-  // Load filters from history
   const handleSelectHistory = (historicalFilters) => {
     setFilters({ ...historicalFilters })
   }
 
-  // Clear all history
   const handleClearHistory = () => {
     if (window.confirm('Are you sure you want to clear all search history?')) {
       setSearchHistory([])
@@ -177,9 +178,6 @@ function App() {
   }
 
   const handleFilteredData = (filteredJobs) => {
-    // Determine if filters are effectively active
-    // If we have jobs, and filtered count matches total, filters are likely off (or all match)
-    // We store the URLs to use for export
     const urls = filteredJobs.map(j => j.job_url)
     setFilteredJobUrls(urls)
   }
@@ -190,13 +188,11 @@ function App() {
 
       let response
       if (isFiltered || (filteredJobUrls && filteredJobUrls.length === 0)) {
-        // Export specific list (subset or empty)
         response = await api.post('/export', {
           search_id: searchId !== 'all' ? searchId : null,
           job_urls: filteredJobUrls
         }, { responseType: 'blob' })
       } else {
-        // Export all for search_id
         const params = {}
         if (searchId && searchId !== 'all') {
           params.search_id = searchId
@@ -232,42 +228,24 @@ function App() {
 
   const handleTabClick = (searchId) => {
     setActiveSearchId(searchId)
-    setSelectedJobUrls([]) // Clear selection when switching tabs
+    setSelectedJobUrls([])
   }
 
   const handleDeleteSearch = async (e, searchId) => {
-    e.stopPropagation() // Prevent tab click
+    e.stopPropagation()
     if (window.confirm('Are you sure you want to close this tab? Jobs in this search will be removed.')) {
       try {
         await api.delete(`/searches/${searchId}`)
-        // Update local state
         const newSearches = searches.filter(s => s.search_id !== searchId)
         setSearches(newSearches)
-
-        // If deleted active tab, switch to 'all'
         if (activeSearchId === searchId) {
           setActiveSearchId('all')
         } else {
-          // If deleted another tab, fetch 'all' or currently active jobs to update counts or remove deleted jobs if they were part of current view?
-          // Actually if we are in 'all' view, we should refresh jobs to remove the deleted ones
           if (activeSearchId === 'all') {
             fetchJobs('all')
           }
         }
-
-        // Refresh searches list from server to be sure
         fetchSearches()
-
-        // If we switched to all, fetch jobs for all
-        if (activeSearchId === searchId) {
-          // setTimeout to allow state update? No, just call plain
-          // create a helper or just re-call fetchJobs
-          // But since activeIds changed, useEffect will trigger? 
-          // Yes useEffect depends on activeSearchId.
-          // BUT: if we were already on 'all', activeSearchId didn't change, so useEffect won't fire.
-          // So if we were on 'all', we must manually refresh.
-        }
-
       } catch (err) {
         alert('Failed to delete search: ' + err.message)
       }
@@ -289,7 +267,6 @@ function App() {
     setSavedJobs(newSavedJobs)
     localStorage.setItem('savedJobs', JSON.stringify(newSavedJobs))
 
-    // If currently viewing saved jobs, update the view
     if (activeSearchId === 'saved') {
       setJobs(newSavedJobs)
     }
@@ -297,7 +274,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      {/* Navbar */}
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-2">
           <div className="bg-blue-600 p-2 rounded-lg text-white">
@@ -314,16 +290,21 @@ function App() {
                 selectedJobUrls.forEach(url => window.open(url, '_blank'))
               }}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-indigo-700 rounded-md hover:bg-indigo-700 transition-colors shadow-sm"
-              title="Open selected jobs in new tabs"
             >
               <ExternalLink size={16} />
               Open Selected ({selectedJobUrls.length})
             </button>
           )}
           <button
+            onClick={() => setShowSettings(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
+          >
+            <Settings size={16} />
+            Settings
+          </button>
+          <button
             onClick={handleClearAllJobs}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-red-700 rounded-md hover:bg-red-700 transition-colors"
-            title="Clear all jobs from database"
           >
             <Trash2 size={16} />
             Clear All
@@ -338,10 +319,8 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="p-6 mx-auto space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column: Filters (8 columns on large screens) */}
           <div className="lg:col-span-8">
             <FilterBar
               onScrape={handleScrape}
@@ -352,7 +331,6 @@ function App() {
             />
           </div>
 
-          {/* Right Column: Search History (4 columns on large screens) */}
           <div className="lg:col-span-4">
             <SearchHistory
               history={searchHistory}
@@ -363,9 +341,6 @@ function App() {
           </div>
         </div>
 
-
-
-        {/* Search Tabs */}
         {(searches.length > 0 || savedJobs.length > 0) && (
           <div className="border-b border-slate-200 overflow-x-auto">
             <nav className="flex space-x-4 pb-1 min-w-max" aria-label="Tabs">
@@ -382,7 +357,6 @@ function App() {
                 All Jobs
               </button>
 
-              {/* Saved Jobs Tab */}
               {savedJobs.length > 0 && (
                 <button
                   onClick={() => handleTabClick('saved')}
@@ -418,7 +392,6 @@ function App() {
                   <div
                     onClick={(e) => handleDeleteSearch(e, search.search_id)}
                     className="absolute right-1 top-2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                    title="Close tab and delete jobs"
                   >
                     <X size={14} />
                   </div>
@@ -429,7 +402,6 @@ function App() {
         )
         }
 
-        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
             <div className="text-slate-500 text-sm font-medium">Total Jobs</div>
@@ -459,7 +431,6 @@ function App() {
           </div>
         </div>
 
-        {/* Job Table */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden min-h-[500px]">
           <JobTable
             jobs={jobs}
@@ -472,6 +443,8 @@ function App() {
           />
         </div>
       </main >
+
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </div >
   )
 }

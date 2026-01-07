@@ -28,3 +28,6 @@ data/exports/
 # OS
 .DS_Store
 Thumbs.db
+
+# Security
+google_client_secrets.json
