@@ -581,7 +581,10 @@ function App() {
             Clear All
           </button>
           <button
-            onClick={() => fetchJobs(activeSearchId)}
+            onClick={() => {
+              fetchJobs(activeSearchId)
+              fetchSearches()
+            }}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
           >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
