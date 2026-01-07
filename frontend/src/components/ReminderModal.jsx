@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { X, Calendar, Mail, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import Flatpickr from "react-flatpickr";
+import "flatpickr/dist/themes/airbnb.css";
 
 const api = axios.create({ baseURL: 'http://localhost:8000/api' })
+
+const FLATPICKR_OPTIONS = {
+    minDate: "today",
+    time_24hr: false,
+    minuteIncrement: 1,
+    dateFormat: "Y-m-d h:i K",
+    disableMobile: true,
+}
 
 export function ReminderModal({ job, onClose }) {
     const [accounts, setAccounts] = useState([])
@@ -11,20 +21,14 @@ export function ReminderModal({ job, onClose }) {
     const [step, setStep] = useState('select') // select, form, success
     const [selectedAccount, setSelectedAccount] = useState(null)
     const [reminderType, setReminderType] = useState('calendar') // calendar, email
-    const [dateTime, setDateTime] = useState('')
+    const [dateTime, setDateTime] = useState(null)
 
     // Set default datetime to tomorrow 9am
     useEffect(() => {
         const d = new Date()
         d.setDate(d.getDate() + 1)
         d.setHours(9, 0, 0, 0)
-
-        // Correctly format for local timezone input [YYYY-MM-DDTHH:mm]
-        // toISOString() converts to UTC, so we shift by offset to get local numbers in the string
-        const offsetDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000))
-        const localIso = offsetDate.toISOString().slice(0, 16)
-
-        setDateTime(localIso)
+        setDateTime(d)
 
         fetchAccounts()
     }, [])
@@ -76,7 +80,7 @@ export function ReminderModal({ job, onClose }) {
             // Handle Static Outlook Web
             if (selectedAccount === 'outlook-web') {
                 if (reminderType === 'calendar') {
-                    const start = new Date(dateTime)
+                    const start = dateTime ? new Date(dateTime) : new Date()
                     const end = new Date(start.getTime() + 30 * 60000) // 30 mins
 
                     const subject = encodeURIComponent(`Follow up: ${job.title}`)
@@ -127,7 +131,7 @@ export function ReminderModal({ job, onClose }) {
                 await api.post('/reminders/calendar', {
                     account_id: selectedAccount,
                     job_details: { ...job, description }, // Pass potentially fetched description
-                    time: new Date(dateTime).toISOString()
+                    time: dateTime.toISOString()
                 })
             } else {
                 await api.post('/reminders/email', {
@@ -218,11 +222,14 @@ export function ReminderModal({ job, onClose }) {
                             {reminderType === 'calendar' && (
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">When?</label>
-                                    <input
-                                        type="datetime-local"
-                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    <Flatpickr
+                                        data-enable-time
                                         value={dateTime}
-                                        onChange={e => setDateTime(e.target.value)}
+                                        onChange={([date]) => {
+                                            if (date) setDateTime(date)
+                                        }}
+                                        options={FLATPICKR_OPTIONS}
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                                     />
                                 </div>
                             )}
