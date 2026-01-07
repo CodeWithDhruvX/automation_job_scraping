@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { X, Layout, ChevronRight, Settings } from 'lucide-react'
+import { X, Layout, ChevronRight, Settings, ChevronLeft, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { JobTable } from './JobTable'
 
 const api = axios.create({
@@ -14,6 +14,7 @@ export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, on
     const [loading, setLoading] = useState(false)
     const [selectedJobUrls, setSelectedJobUrls] = useState([])
     const [selectedSidebarIds, setSelectedSidebarIds] = useState([])
+    const [isSidebarExpanded, setIsSidebarExpanded] = useState(true)
 
     // 1. Fetch search metadata for sidebar
     useEffect(() => {
@@ -152,19 +153,31 @@ export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, on
             {/* Main Layout */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Sidebar */}
-                <div className="w-72 bg-white border-r border-slate-200 flex flex-col overflow-y-auto">
-                    <div className="p-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                className="rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500"
-                                checked={searches.length > 0 && selectedSidebarIds.length === searches.length}
-                                onChange={handleSelectAllSidebar}
-                                disabled={searches.length === 0}
-                            />
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">My Tabs</h3>
-                        </div>
-                        {selectedSidebarIds.length > 0 && (
+                <div
+                    className={`
+                        bg-white border-r border-slate-200 flex flex-col overflow-y-auto transition-all duration-300 ease-in-out
+                        ${isSidebarExpanded ? 'w-72' : 'w-14 items-center'}
+                    `}
+                >
+                    <div className="p-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10 w-full">
+                        {isSidebarExpanded ? (
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    className="rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500"
+                                    checked={searches.length > 0 && selectedSidebarIds.length === searches.length}
+                                    onChange={handleSelectAllSidebar}
+                                    disabled={searches.length === 0}
+                                />
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">My Tabs</h3>
+                            </div>
+                        ) : (
+                            <div className="flex justify-center w-full">
+                                <Layout size={16} className="text-slate-400" />
+                            </div>
+                        )}
+
+                        {isSidebarExpanded && selectedSidebarIds.length > 0 && (
                             <button
                                 onClick={handleRemoveSelectedTabs}
                                 className="text-xs text-red-600 hover:bg-red-50 px-2 py-1 rounded font-medium transition-colors"
@@ -172,10 +185,21 @@ export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, on
                                 Remove ({selectedSidebarIds.length})
                             </button>
                         )}
+
+                        <button
+                            onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+                            className={`
+                                text-slate-400 hover:text-slate-600 transition-colors p-1 rounded hover:bg-slate-100
+                                ${!isSidebarExpanded && 'mt-2'}
+                            `}
+                            title={isSidebarExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
+                        >
+                            {isSidebarExpanded ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
+                        </button>
                     </div>
 
-                    <div className="p-2 space-y-1">
-                        {searches.length === 0 && (
+                    <div className={`p-2 space-y-1 w-full ${!isSidebarExpanded && 'flex flex-col items-center'}`}>
+                        {searches.length === 0 && isSidebarExpanded && (
                             <div className="text-sm text-slate-500 italic p-4 text-center">
                                 No tabs selected.<br />Click "Manage Tabs" to add.
                             </div>
@@ -184,57 +208,68 @@ export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, on
                             <div
                                 key={search.search_id}
                                 className={`
-                                    w-full flex items-center gap-2 p-2 rounded-lg transition-all group relative
+                                    flex items-center gap-2 p-2 rounded-lg transition-all group relative cursor-pointer
                                     ${activeTabId === search.search_id
                                         ? 'bg-fuchsia-50 border border-fuchsia-100 shadow-sm'
                                         : 'hover:bg-slate-50 border border-transparent'
                                     }
+                                    ${isSidebarExpanded ? 'w-full' : 'justify-center w-10 h-10'}
                                 `}
+                                onClick={() => setActiveTabId(search.search_id)}
+                                title={!isSidebarExpanded ? search.search_query : ''}
                             >
-                                <input
-                                    type="checkbox"
-                                    className="rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500 ml-1"
-                                    checked={selectedSidebarIds.includes(search.search_id)}
-                                    onChange={(e) => {
-                                        e.stopPropagation()
-                                        handleSidebarSelect(search.search_id)
-                                    }}
-                                />
-                                <button
-                                    onClick={() => setActiveTabId(search.search_id)}
-                                    className="flex-1 text-left min-w-0 flex items-center justify-between"
-                                >
-                                    <div className="truncate pr-2">
-                                        <div className={`truncate text-sm font-medium ${activeTabId === search.search_id ? 'text-fuchsia-700' : 'text-slate-700'}`}>
-                                            {search.search_query}
-                                        </div>
-                                        <div className="text-xs opacity-70 truncate text-slate-500">{search.search_location}</div>
-                                    </div>
-                                </button>
-
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            if (window.confirm(`Remove "${search.search_query}" from Smart View?`)) {
-                                                const newIds = smartTabIds.filter(id => id !== search.search_id)
-                                                onSave(newIds)
-                                                // Handle active
-                                                if (activeTabId === search.search_id) {
-                                                    setActiveTabId(null)
-                                                }
-                                                // Handle selection
-                                                if (selectedSidebarIds.includes(search.search_id)) {
-                                                    setSelectedSidebarIds(prev => prev.filter(id => id !== search.search_id))
-                                                }
-                                            }
+                                {isSidebarExpanded && (
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500 ml-1"
+                                        checked={selectedSidebarIds.includes(search.search_id)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => {
+                                            handleSidebarSelect(search.search_id)
                                         }}
-                                        className="p-1.5 rounded hover:bg-slate-200 text-slate-400 hover:text-red-600 transition-colors"
-                                        title="Remove from View"
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                </div>
+                                    />
+                                )}
+
+                                {isSidebarExpanded ? (
+                                    <div className="flex-1 text-left min-w-0">
+                                        <div className="truncate pr-2">
+                                            <div className={`truncate text-sm font-medium ${activeTabId === search.search_id ? 'text-fuchsia-700' : 'text-slate-700'}`}>
+                                                {search.search_query}
+                                            </div>
+                                            <div className="text-xs opacity-70 truncate text-slate-500">{search.search_location}</div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <span className={`text-lg font-bold select-none ${activeTabId === search.search_id ? 'text-fuchsia-700' : 'text-slate-500'}`}>
+                                        {search.search_query.charAt(0).toUpperCase()}
+                                    </span>
+                                )}
+
+                                {isSidebarExpanded && (
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                if (window.confirm(`Remove "${search.search_query}" from Smart View?`)) {
+                                                    const newIds = smartTabIds.filter(id => id !== search.search_id)
+                                                    onSave(newIds)
+                                                    // Handle active
+                                                    if (activeTabId === search.search_id) {
+                                                        setActiveTabId(null)
+                                                    }
+                                                    // Handle selection
+                                                    if (selectedSidebarIds.includes(search.search_id)) {
+                                                        setSelectedSidebarIds(prev => prev.filter(id => id !== search.search_id))
+                                                    }
+                                                }
+                                            }}
+                                            className="p-1.5 rounded hover:bg-slate-200 text-slate-400 hover:text-red-600 transition-colors"
+                                            title="Remove from View"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                )}
 
                                 {activeTabId === search.search_id && (
                                     <div className="absolute right-0 top-0 bottom-0 w-1 bg-fuchsia-600 rounded-l"></div>

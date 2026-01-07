@@ -227,7 +227,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                 </div>
             </div>
 
-            <div className="overflow-visible min-h-[400px]">
+            <div className="overflow-x-auto min-h-[400px]">
                 <table className="w-full text-left text-sm text-slate-600 relative">
                     <thead className="bg-slate-50 text-slate-900 font-medium border-b border-slate-200">
                         <tr>
