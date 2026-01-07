@@ -5,7 +5,9 @@ import { FilterBar } from './components/FilterBar'
 import { SearchHistory } from './components/SearchHistory'
 import { SettingsModal } from './components/SettingsModal'
 import { AppliedJobsView } from './components/AppliedJobsView'
-import { LayoutDashboard, RefreshCw, Trash2, X, Download, ExternalLink, Settings, Upload } from 'lucide-react'
+import { SmartTabView } from './components/SmartTabView'
+import { SmartTabModal } from './components/SmartTabModal'
+import { LayoutDashboard, RefreshCw, Trash2, X, Download, ExternalLink, Settings, Upload, Sparkles } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 // Configure Axios base URL
@@ -24,6 +26,14 @@ function App() {
   const [selectedJobUrls, setSelectedJobUrls] = useState([])
   const [showSettings, setShowSettings] = useState(false)
   const [showAppliedJobsView, setShowAppliedJobsView] = useState(false)
+
+  // Smart Tab State
+  const [showSmartTabView, setShowSmartTabView] = useState(false)
+  const [showSmartTabModal, setShowSmartTabModal] = useState(false)
+  const [smartTabIds, setSmartTabIds] = useState(() => {
+    const saved = localStorage.getItem('smartTabIds')
+    return saved ? JSON.parse(saved) : []
+  })
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -454,6 +464,11 @@ function App() {
     reader.readAsBinaryString(file)
   }
 
+  const handleSmartTabSave = (ids) => {
+    setSmartTabIds(ids)
+    localStorage.setItem('smartTabIds', JSON.stringify(ids))
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
@@ -466,6 +481,15 @@ function App() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
+
+          <button
+            onClick={() => setShowSmartTabView(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-fuchsia-600 to-pink-600 border border-transparent rounded-md hover:from-fuchsia-700 hover:to-pink-700 transition-colors shadow-sm"
+          >
+            <Sparkles size={16} fill="currentColor" className="text-white/20" />
+            Smart Tab
+          </button>
+
           {selectedJobUrls.length > 0 && (
             <button
               onClick={() => {
@@ -703,6 +727,7 @@ function App() {
       </main >
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+
       {showAppliedJobsView && (
         <AppliedJobsView
           onClose={() => {
@@ -716,6 +741,27 @@ function App() {
             // Refresh jobs to update counts
             fetchJobs(activeSearchId)
           }}
+        />
+      )}
+
+      {showSmartTabView && (
+        <SmartTabView
+          onClose={() => setShowSmartTabView(false)}
+          smartTabIds={smartTabIds}
+          onManageTabs={() => setShowSmartTabModal(true)}
+          savedJobs={savedJobs}
+          onToggleSave={handleToggleSaveJob}
+          onSave={handleSmartTabSave}
+        />
+      )}
+
+      {showSmartTabModal && (
+        <SmartTabModal
+          isOpen={true}
+          onClose={() => setShowSmartTabModal(false)}
+          allSearches={searches}
+          savedSmartTabIds={smartTabIds}
+          onSave={handleSmartTabSave}
         />
       )}
     </div >
