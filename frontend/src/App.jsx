@@ -223,12 +223,20 @@ function App() {
   const handleExport = async (searchId = activeSearchId) => {
     try {
       const isFiltered = filteredJobUrls && jobs.length > 0 && filteredJobUrls.length !== jobs.length
+      const isVirtualTab = searchId === 'saved' || searchId === 'applied'
 
       let response
-      if (isFiltered || (filteredJobUrls && filteredJobUrls.length === 0)) {
+      if (isFiltered || (filteredJobUrls && filteredJobUrls.length === 0) || isVirtualTab) {
+        // Determine URLs to export
+        let urlsToExport = filteredJobUrls
+        if (!urlsToExport && isVirtualTab) {
+          // If on saved/applied tab and no specific filter, export all visible jobs
+          urlsToExport = jobs.map(j => j.job_url)
+        }
+
         response = await api.post('/export', {
-          search_id: searchId !== 'all' ? searchId : null,
-          job_urls: filteredJobUrls
+          search_id: (searchId !== 'all' && !isVirtualTab) ? searchId : null,
+          job_urls: urlsToExport
         }, { responseType: 'blob' })
       } else {
         const params = {}
@@ -291,7 +299,8 @@ function App() {
   }
 
   const handleJobUpdate = (updatedJob) => {
-    setJobs(jobs.map(j => j.job_url === updatedJob.job_url ? { ...j, ...updatedJob } : j))
+    setJobs(prevJobs => prevJobs.map(j => j.job_url === updatedJob.job_url ? { ...j, ...updatedJob } : j))
+    setAllJobs(prevAllJobs => prevAllJobs.map(j => j.job_url === updatedJob.job_url ? { ...j, ...updatedJob } : j))
   }
 
   const handleToggleSaveJob = (job) => {
@@ -484,10 +493,43 @@ function App() {
               {allJobs.filter(j => j.my_status === 'APPLIED').length}
             </div>
           </button>
-          <div className="h-full">
+          <div className="h-full flex gap-2">
+            {selectedJobUrls.length > 0 && (
+              <button
+                onClick={async () => {
+                  if (window.confirm(`Mark ${selectedJobUrls.length} selected job(s) as APPLIED?`)) {
+                    try {
+                      // Mark each selected job as APPLIED
+                      for (const url of selectedJobUrls) {
+                        await api.post('/jobs/update', {
+                          url: url,
+                          status: 'APPLIED'
+                        })
+                      }
+                      // Refresh the jobs list
+                      await fetchJobs(activeSearchId)
+                      // Clear selection
+                      setSelectedJobUrls([])
+                      alert(`Successfully marked ${selectedJobUrls.length} job(s) as APPLIED!`)
+                    } catch (err) {
+                      console.error('Failed to mark jobs as applied:', err)
+                      alert('Failed to update some jobs. Please try again.')
+                    }
+                  }
+                }}
+                className="flex-1 min-h-[80px] flex flex-col items-center justify-center gap-2 bg-blue-50 border-2 border-blue-500 rounded-xl text-blue-700 font-bold hover:bg-blue-100 transition-colors shadow-md hover:shadow-lg"
+                title={`Mark ${selectedJobUrls.length} selected job(s) as APPLIED`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                <span>Apply Jobs ({selectedJobUrls.length})</span>
+              </button>
+            )}
             <button
               onClick={() => handleExport()}
-              className="w-full h-full min-h-[80px] flex flex-col items-center justify-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-700 font-medium hover:bg-indigo-100 transition-colors shadow-sm"
+              className={`${selectedJobUrls.length > 0 ? 'flex-1' : 'w-full'} h-full min-h-[80px] flex flex-col items-center justify-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-700 font-medium hover:bg-indigo-100 transition-colors shadow-sm`}
               title="Export jobs for current tab to Excel"
             >
               <Download size={24} />

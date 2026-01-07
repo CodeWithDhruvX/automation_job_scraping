@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText } from 'lucide-react'
+import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle } from 'lucide-react'
 import { ReminderModal } from './ReminderModal'
 
 const api = axios.create({
@@ -327,26 +327,51 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                             >
                                                 <Bell size={16} />
                                             </button>
-                                            <button
-                                                title="Mark Applied"
-                                                className="p-1 hover:bg-slate-200 rounded text-green-600"
-                                                onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    try {
-                                                        await api.post('/jobs/update', {
-                                                            url: job.job_url,
-                                                            status: 'APPLIED'
-                                                        })
-                                                        if (onJobUpdate) {
-                                                            onJobUpdate({ ...job, my_status: 'APPLIED' })
+                                            {job.my_status === 'APPLIED' ? (
+                                                <button
+                                                    title="Unapply Job"
+                                                    className="p-1 hover:bg-slate-200 rounded text-red-600"
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        if (window.confirm('Mark this job as NOT applied?')) {
+                                                            try {
+                                                                await api.post('/jobs/update', {
+                                                                    url: job.job_url,
+                                                                    status: 'NEW'
+                                                                })
+                                                                if (onJobUpdate) {
+                                                                    onJobUpdate({ ...job, my_status: 'NEW' })
+                                                                }
+                                                            } catch (err) {
+                                                                console.error('Failed to unapply job:', err)
+                                                            }
                                                         }
-                                                    } catch (err) {
-                                                        console.error('Failed to mark as applied:', err)
-                                                    }
-                                                }}
-                                            >
-                                                <CheckCircle size={16} />
-                                            </button>
+                                                    }}
+                                                >
+                                                    <XCircle size={16} />
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    title="Mark Applied"
+                                                    className="p-1 hover:bg-slate-200 rounded text-green-600"
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        try {
+                                                            await api.post('/jobs/update', {
+                                                                url: job.job_url,
+                                                                status: 'APPLIED'
+                                                            })
+                                                            if (onJobUpdate) {
+                                                                onJobUpdate({ ...job, my_status: 'APPLIED' })
+                                                            }
+                                                        } catch (err) {
+                                                            console.error('Failed to mark as applied:', err)
+                                                        }
+                                                    }}
+                                                >
+                                                    <CheckCircle size={16} />
+                                                </button>
+                                            )}
                                             <button
                                                 title="Hide"
                                                 className="p-1 hover:bg-slate-200 rounded text-slate-400"

@@ -98,6 +98,24 @@ def clear_all_jobs():
     job_manager.clear_all_jobs()
     return {"message": "All jobs cleared successfully"}
 
+@app.post("/api/jobs/import")
+def import_jobs(payload: Dict):
+    """
+    Import jobs from external source (e.g., Excel).
+    Payload: {"jobs": [...list of job objects...]}
+    """
+    jobs_to_import = payload.get("jobs", [])
+    if not jobs_to_import:
+        raise HTTPException(status_code=400, detail="No jobs provided")
+    
+    imported_count = job_manager.add_jobs(jobs_to_import)
+    
+    return {
+        "message": f"Successfully imported {imported_count} new jobs",
+        "imported_count": imported_count,
+        "total_received": len(jobs_to_import)
+    }
+
 @app.post("/api/jobs/fetch_desc")
 def fetch_job_desc(payload: Dict[str, str]):
     """
@@ -174,6 +192,8 @@ def export_jobs(search_id: Optional[str] = None):
             filters['search_id'] = search_id
             
         return _generate_export(filters)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -189,6 +209,8 @@ def export_jobs_post(req: ExportRequest):
             filters['job_urls'] = req.job_urls
             
         return _generate_export(filters)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
