@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle } from 'lucide-react'
+import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, Trash2 } from 'lucide-react'
 import { ReminderModal } from './ReminderModal'
 
 const api = axios.create({
     baseURL: 'http://localhost:8000/api'
 })
 
-export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFilteredData, selectedJobUrls = [], onSelectionChange }) {
+export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFilteredData, selectedJobUrls = [], onSelectionChange, onDeleteJob }) {
     const [selectedJob, setSelectedJob] = useState(null)
     const [reminderJob, setReminderJob] = useState(null)
     const [copied, setCopied] = useState(false)
@@ -379,6 +379,15 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                             >
                                                 <EyeOff size={16} />
                                             </button>
+                                            {onDeleteJob && (
+                                                <button
+                                                    title="Delete Job"
+                                                    className="p-1 hover:bg-red-50 rounded text-red-500 hover:text-red-700"
+                                                    onClick={(e) => { e.stopPropagation(); onDeleteJob(job) }}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

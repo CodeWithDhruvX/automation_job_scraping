@@ -98,6 +98,26 @@ def clear_all_jobs():
     job_manager.clear_all_jobs()
     return {"message": "All jobs cleared successfully"}
 
+@app.delete("/api/jobs/detail")
+def delete_single_job(url: str = Query(..., description="The URL of the job to delete")):
+    """Deletes a single job by URL."""
+    success = job_manager.delete_job(url)
+    if not success:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {"status": "deleted", "url": url}
+
+@app.post("/api/jobs/delete-list")
+def delete_job_list(payload: Dict[str, List[str]]):
+    """
+    Deletes multiple jobs. Payload: {"urls": ["url1", "url2"]}
+    """
+    urls = payload.get("urls", [])
+    if not urls:
+        raise HTTPException(status_code=400, detail="No urls provided")
+    
+    count = job_manager.delete_jobs(urls)
+    return {"status": "deleted", "count": count}
+
 @app.post("/api/jobs/import")
 def import_jobs(payload: Dict):
     """

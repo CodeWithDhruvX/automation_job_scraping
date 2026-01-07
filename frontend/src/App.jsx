@@ -5,7 +5,8 @@ import { FilterBar } from './components/FilterBar'
 import { SearchHistory } from './components/SearchHistory'
 import { SettingsModal } from './components/SettingsModal'
 import { AppliedJobsView } from './components/AppliedJobsView'
-import { LayoutDashboard, RefreshCw, Trash2, X, Download, ExternalLink, Settings } from 'lucide-react'
+import { LayoutDashboard, RefreshCw, Trash2, X, Download, ExternalLink, Settings, Upload } from 'lucide-react'
+import * as XLSX from 'xlsx'
 
 // Configure Axios base URL
 const api = axios.create({
@@ -319,6 +320,140 @@ function App() {
     }
   }
 
+  const handleDeleteJob = async (job) => {
+    if (window.confirm('Are you sure you want to delete this job?')) {
+      try {
+        // Use encodeURIComponent for the URL parameter
+        await api.delete(`/jobs/detail?url=${encodeURIComponent(job.job_url)}`)
+
+        // Update local state
+        const newJobs = jobs.filter(j => j.job_url !== job.job_url)
+        setJobs(newJobs)
+        setAllJobs(prev => prev.filter(j => j.job_url !== job.job_url))
+
+        // If it was in saved jobs, remove it there too
+        if (savedJobs.some(j => j.job_url === job.job_url)) {
+          const newSaved = savedJobs.filter(j => j.job_url !== job.job_url)
+          setSavedJobs(newSaved)
+          localStorage.setItem('savedJobs', JSON.stringify(newSaved))
+        }
+
+      } catch (err) {
+        alert('Failed to delete job: ' + err.message)
+      }
+    }
+  }
+
+  const handleDeleteAllImported = async () => {
+    if (window.confirm('Are you sure you want to delete ALL jobs in this import tab? This cannot be undone.')) {
+      try {
+        await api.delete(`/searches/${activeSearchId}`)
+        // Remove the tab and switch to 'all'
+        const newSearches = searches.filter(s => s.search_id !== activeSearchId)
+        setSearches(newSearches)
+        setActiveSearchId('all')
+        fetchSearches() // Refresh counts
+        alert('Imported jobs deleted successfully.')
+      } catch (err) {
+        alert('Failed to delete imported jobs: ' + err.message)
+      }
+    }
+  }
+
+  const handleDeleteSelected = async () => {
+    if (window.confirm(`Are you sure you want to delete ${selectedJobUrls.length} selected job(s)?`)) {
+      try {
+        await api.post('/jobs/delete-list', { urls: selectedJobUrls })
+
+        // Update local state
+        const newJobs = jobs.filter(j => !selectedJobUrls.includes(j.job_url))
+        setJobs(newJobs)
+        setAllJobs(prev => prev.filter(j => !selectedJobUrls.includes(j.job_url)))
+
+        // Remove from saved jobs if present
+        const newSaved = savedJobs.filter(j => !selectedJobUrls.includes(j.job_url))
+        if (newSaved.length !== savedJobs.length) {
+          setSavedJobs(newSaved)
+          localStorage.setItem('savedJobs', JSON.stringify(newSaved))
+        }
+
+        setSelectedJobUrls([])
+        alert(`Successfully deleted ${selectedJobUrls.length} jobs.`)
+      } catch (err) {
+        alert('Failed to delete jobs: ' + err.message)
+      }
+    }
+  }
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target.result
+        const wb = XLSX.read(bstr, { type: 'binary' })
+        const wsname = wb.SheetNames[0]
+        const ws = wb.Sheets[wsname]
+        const data = XLSX.utils.sheet_to_json(ws)
+
+        if (data.length === 0) {
+          alert("No data found in the file.")
+          return
+        }
+
+        // Transform data
+        const searchId = `import_${Date.now()}`
+        const timestamp = new Date().toISOString()
+
+        const jobsToImport = data.map((row, index) => {
+          // Normalize keys to lowercase for mapping
+          const normalized = {}
+          Object.keys(row).forEach(key => {
+            normalized[key.toLowerCase()] = row[key]
+          })
+
+          return {
+            job_url: normalized['job_url'] || normalized['url'] || `import://${Date.now()}-${index}`, // Fallback if no URL
+            title: normalized['title'] || 'Untitled Job',
+            company: normalized['company'] || 'Unknown Company',
+            location: normalized['location'] || normalized['city'] || 'Unknown Location',
+            date_posted: normalized['date_posted'] || normalized['posted'] || 'Recently',
+            min_amount: normalized['min_amount'],
+            max_amount: normalized['max_amount'],
+            currency: normalized['currency'],
+            job_type: normalized['job_type'],
+            description: normalized['description'] || '',
+
+            // System fields
+            search_id: searchId,
+            search_query: `Imported: ${file.name}`,
+            search_location: 'File Upload',
+            search_timestamp: timestamp,
+            search_sites: normalized['site'] || 'Imported',
+            my_status: 'NEW', // Default status
+            added_date: timestamp
+          }
+        })
+
+        await api.post('/jobs/import', { jobs: jobsToImport })
+
+        alert(`Successfully imported ${jobsToImport.length} jobs!`)
+        await fetchSearches()
+        setActiveSearchId(searchId) // Switch to the new tab
+
+      } catch (err) {
+        console.error("Import error:", err)
+        alert("Failed to import file: " + err.message)
+      } finally {
+        // Reset file input
+        e.target.value = ''
+      }
+    }
+    reader.readAsBinaryString(file)
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
@@ -351,6 +486,11 @@ function App() {
           >
             Applied Jobs
           </button>
+          <label className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors cursor-pointer select-none">
+            <Upload size={16} />
+            Import
+            <input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} className="hidden" />
+          </label>
           <button
             onClick={() => setShowSettings(true)}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
@@ -535,6 +675,16 @@ function App() {
               <Download size={24} />
               <span>Export {activeSearchId === 'all' ? 'All' : 'Tab'} Data</span>
             </button>
+            {activeSearchId.startsWith('import_') && (
+              <button
+                onClick={selectedJobUrls.length > 0 ? handleDeleteSelected : handleDeleteAllImported}
+                className={`w-1/3 h-full min-h-[80px] flex flex-col items-center justify-center gap-2 bg-red-50 border border-red-200 rounded-xl text-red-700 font-medium hover:bg-red-100 transition-colors shadow-sm`}
+                title={selectedJobUrls.length > 0 ? "Delete selected jobs" : "Delete all jobs in this import"}
+              >
+                <Trash2 size={24} />
+                <span>{selectedJobUrls.length > 0 ? `Delete Selected (${selectedJobUrls.length})` : 'Delete All'}</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -547,6 +697,7 @@ function App() {
             onFilteredData={handleFilteredData}
             selectedJobUrls={selectedJobUrls}
             onSelectionChange={setSelectedJobUrls}
+            onDeleteJob={activeSearchId.startsWith('import_') ? handleDeleteJob : null}
           />
         </div>
       </main >

@@ -143,6 +143,27 @@ class JobManager:
             return True
         return False
 
+    def delete_job(self, job_url: str):
+        """Deletes a single job by URL."""
+        if job_url in self.jobs:
+            del self.jobs[job_url]
+            self.save_data()
+            return True
+        return False
+
+    def delete_jobs(self, job_urls: List[str]) -> int:
+        """Deletes multiple jobs by URL. Returns count of deleted jobs."""
+        count = 0
+        for url in job_urls:
+            if url in self.jobs:
+                del self.jobs[url]
+                count += 1
+        
+        if count > 0:
+            self.save_data()
+            
+        return count
+
     def export_to_pandas(self, filters: Dict = None) -> pd.DataFrame:
         data = list(self.jobs.values())
         if not data:
