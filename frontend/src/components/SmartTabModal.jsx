@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
-import { X, Check } from 'lucide-react'
+import { X, Check, Search } from 'lucide-react'
 
 export function SmartTabModal({ isOpen, onClose, allSearches, savedSmartTabIds, onSave }) {
     const [selectedIds, setSelectedIds] = useState([])
+    const [searchTerm, setSearchTerm] = useState('')
 
     useEffect(() => {
         if (isOpen) {
             setSelectedIds(savedSmartTabIds || [])
+            setSearchTerm('')
         }
     }, [isOpen, savedSmartTabIds])
 
@@ -23,6 +25,11 @@ export function SmartTabModal({ isOpen, onClose, allSearches, savedSmartTabIds, 
         onClose()
     }
 
+    const filteredSearches = allSearches.filter(search =>
+        search.search_query.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        search.search_location.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
     if (!isOpen) return null
 
     return (
@@ -35,18 +42,31 @@ export function SmartTabModal({ isOpen, onClose, allSearches, savedSmartTabIds, 
                     </button>
                 </div>
 
+                <div className="p-4 border-b border-slate-100">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Search tabs..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        />
+                    </div>
+                </div>
+
                 <div className="p-4 max-h-[60vh] overflow-y-auto">
                     <p className="text-sm text-slate-500 mb-4">
                         Select the tabs you want to see in your Smart Tab view.
                     </p>
 
-                    {allSearches.length === 0 ? (
+                    {filteredSearches.length === 0 ? (
                         <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-lg">
-                            No active search tabs found.
+                            {searchTerm ? 'No matching tabs found.' : 'No active search tabs found.'}
                         </div>
                     ) : (
                         <div className="space-y-2">
-                            {allSearches.map(search => (
+                            {filteredSearches.map(search => (
                                 <label
                                     key={search.search_id}
                                     className={`

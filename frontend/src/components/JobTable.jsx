@@ -305,7 +305,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                         )
                                     })}
                                     <td className="px-6 py-4 text-right">
-                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex items-center justify-end gap-2 transition-opacity">
                                             <button
                                                 title={isJobSaved(job) ? "Unsave Job" : "Save Job"}
                                                 className={`p-1 hover:bg-slate-200 rounded ${isJobSaved(job) ? 'text-indigo-600' : 'text-slate-400'}`}

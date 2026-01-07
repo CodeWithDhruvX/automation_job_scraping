@@ -90,6 +90,31 @@ export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, on
         }
     }
 
+    const handleDeleteJob = async (job) => {
+        if (window.confirm('Are you sure you want to delete this job?')) {
+            try {
+                // Use encodeURIComponent for the URL parameter
+                await api.delete(`/jobs/detail?url=${encodeURIComponent(job.job_url)}`)
+
+                // Update local state by removing the job
+                setActiveJobs(prev => prev.filter(j => j.job_url !== job.job_url))
+
+                // If it was in saved jobs, remove it there too (optional, but good for consistency)
+                if (savedJobs.some(j => j.job_url === job.job_url)) {
+                    onToggleSave(job) // This toggles, so if it's saved it will unsave. 
+                    // But safer might be to let parent handle it or just ignore if we want to keep it simple.
+                    // Actually, looking at App.jsx, it manually updates savedJobs.
+                    // Since we don't have setSavedJobs here, we might rely on onToggleSave if it checks existence, 
+                    // OR we just leave it be. The user sees it gone from the list.
+                }
+
+            } catch (err) {
+                console.error('Failed to delete job:', err)
+                alert('Failed to delete job: ' + err.message)
+            }
+        }
+    }
+
     return (
         <div className="fixed inset-0 z-40 bg-slate-50 flex flex-col animate-in slide-in-from-right-10 duration-200">
             {/* Header */}
@@ -256,6 +281,7 @@ export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, on
                                                 // Optimistic update for local list
                                                 setActiveJobs(prev => prev.map(j => j.job_url === updatedJob.job_url ? updatedJob : j))
                                             }}
+                                            onDeleteJob={handleDeleteJob}
                                         />
                                     </div>
                                 )}

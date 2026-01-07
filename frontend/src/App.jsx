@@ -83,6 +83,8 @@ function App() {
     // Check URL hash for Applied Jobs view
     if (window.location.hash === '#applied-jobs') {
       setShowAppliedJobsView(true)
+    } else if (window.location.hash === '#smart-tabs') {
+      setShowSmartTabView(true)
     }
   }, [])
 
@@ -91,8 +93,13 @@ function App() {
     const handleHashChange = () => {
       if (window.location.hash === '#applied-jobs') {
         setShowAppliedJobsView(true)
+        setShowSmartTabView(false)
+      } else if (window.location.hash === '#smart-tabs') {
+        setShowSmartTabView(true)
+        setShowAppliedJobsView(false)
       } else {
         setShowAppliedJobsView(false)
+        setShowSmartTabView(false)
       }
     }
 
@@ -483,7 +490,10 @@ function App() {
         <div className="flex items-center gap-2">
 
           <button
-            onClick={() => setShowSmartTabView(true)}
+            onClick={() => {
+              window.location.hash = 'smart-tabs'
+              setShowSmartTabView(true)
+            }}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-fuchsia-600 to-pink-600 border border-transparent rounded-md hover:from-fuchsia-700 hover:to-pink-700 transition-colors shadow-sm"
           >
             <Sparkles size={16} fill="currentColor" className="text-white/20" />
@@ -746,7 +756,10 @@ function App() {
 
       {showSmartTabView && (
         <SmartTabView
-          onClose={() => setShowSmartTabView(false)}
+          onClose={() => {
+            window.location.hash = ''
+            setShowSmartTabView(false)
+          }}
           smartTabIds={smartTabIds}
           onManageTabs={() => setShowSmartTabModal(true)}
           savedJobs={savedJobs}
