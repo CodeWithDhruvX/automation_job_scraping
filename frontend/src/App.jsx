@@ -4,6 +4,7 @@ import { JobTable } from './components/JobTable'
 import { FilterBar } from './components/FilterBar'
 import { SearchHistory } from './components/SearchHistory'
 import { SettingsModal } from './components/SettingsModal'
+import { AppliedJobsView } from './components/AppliedJobsView'
 import { LayoutDashboard, RefreshCw, Trash2, X, Download, ExternalLink, Settings } from 'lucide-react'
 
 // Configure Axios base URL
@@ -13,6 +14,7 @@ const api = axios.create({
 
 function App() {
   const [jobs, setJobs] = useState([])
+  const [allJobs, setAllJobs] = useState([]) // Track all jobs for accurate counts
   const [loading, setLoading] = useState(false)
   const [scrapping, setScrapping] = useState(false)
   const [searches, setSearches] = useState([])
@@ -20,6 +22,7 @@ function App() {
   const [filteredJobUrls, setFilteredJobUrls] = useState(null)
   const [selectedJobUrls, setSelectedJobUrls] = useState([])
   const [showSettings, setShowSettings] = useState(false)
+  const [showAppliedJobsView, setShowAppliedJobsView] = useState(false)
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -57,7 +60,7 @@ function App() {
     return saved ? JSON.parse(saved) : []
   })
 
-  // Check URL params for settings
+  // Check URL params for settings and hash for Applied Jobs view
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('open') === 'true' || params.get('status') === 'success') {
@@ -65,6 +68,25 @@ function App() {
       // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname)
     }
+
+    // Check URL hash for Applied Jobs view
+    if (window.location.hash === '#applied-jobs') {
+      setShowAppliedJobsView(true)
+    }
+  }, [])
+
+  // Listen for hash changes (browser back/forward)
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#applied-jobs') {
+        setShowAppliedJobsView(true)
+      } else {
+        setShowAppliedJobsView(false)
+      }
+    }
+
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
   const fetchSearches = async () => {
@@ -82,6 +104,21 @@ function App() {
       return
     }
 
+    if (searchId === 'applied') {
+      setLoading(true)
+      try {
+        const res = await api.get('/jobs')
+        setAllJobs(res.data) // Store all jobs for counts
+        const appliedJobs = res.data.filter(j => j.my_status === 'APPLIED')
+        setJobs(appliedJobs)
+      } catch (err) {
+        console.error("Failed to fetch applied jobs", err)
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
+
     setLoading(true)
     try {
       const params = {}
@@ -90,6 +127,7 @@ function App() {
       }
       const res = await api.get('/jobs', { params })
       setJobs(res.data)
+      setAllJobs(res.data) // Store all jobs for counts
     } catch (err) {
       console.error("Failed to fetch jobs", err)
     } finally {
@@ -296,6 +334,15 @@ function App() {
             </button>
           )}
           <button
+            onClick={() => {
+              window.location.hash = 'applied-jobs'
+              setShowAppliedJobsView(true)
+            }}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors shadow-sm"
+          >
+            Applied Jobs
+          </button>
+          <button
             onClick={() => setShowSettings(true)}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
           >
@@ -341,7 +388,7 @@ function App() {
           </div>
         </div>
 
-        {(searches.length > 0 || savedJobs.length > 0) && (
+        {(searches.length > 0 || savedJobs.length > 0 || allJobs.filter(j => j.my_status === 'APPLIED').length > 0) && (
           <div className="border-b border-slate-200 overflow-x-auto">
             <nav className="flex space-x-4 pb-1 min-w-max" aria-label="Tabs">
               <button
@@ -369,6 +416,21 @@ function App() {
                 `}
                 >
                   Saved Jobs ({savedJobs.length})
+                </button>
+              )}
+
+              {allJobs.filter(j => j.my_status === 'APPLIED').length > 0 && (
+                <button
+                  onClick={() => handleTabClick('applied')}
+                  className={`
+                  px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 
+                  ${activeSearchId === 'applied'
+                      ? 'border-blue-600 text-blue-600 bg-white'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                    }
+                `}
+                >
+                  Applied Jobs ({allJobs.filter(j => j.my_status === 'APPLIED').length})
                 </button>
               )}
 
@@ -413,12 +475,15 @@ function App() {
               {jobs.filter(j => j.my_status === 'NEW').length}
             </div>
           </div>
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <button
+            onClick={() => handleTabClick('applied')}
+            className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer text-left w-full"
+          >
             <div className="text-slate-500 text-sm font-medium">Applied</div>
             <div className="text-2xl font-bold mt-1 text-blue-600">
-              {jobs.filter(j => j.my_status === 'APPLIED').length}
+              {allJobs.filter(j => j.my_status === 'APPLIED').length}
             </div>
-          </div>
+          </button>
           <div className="h-full">
             <button
               onClick={() => handleExport()}
@@ -445,6 +510,21 @@ function App() {
       </main >
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showAppliedJobsView && (
+        <AppliedJobsView
+          onClose={() => {
+            window.location.hash = ''
+            setShowAppliedJobsView(false)
+          }}
+          savedJobs={savedJobs}
+          onToggleSave={handleToggleSaveJob}
+          onJobUpdate={(updatedJob) => {
+            handleJobUpdate(updatedJob)
+            // Refresh jobs to update counts
+            fetchJobs(activeSearchId)
+          }}
+        />
+      )}
     </div >
   )
 }

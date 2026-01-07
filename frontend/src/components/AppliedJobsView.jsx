@@ -1,24 +1,26 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText } from 'lucide-react'
+import { ExternalLink, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, ArrowLeft } from 'lucide-react'
 import { ReminderModal } from './ReminderModal'
 
 const api = axios.create({
     baseURL: 'http://localhost:8000/api'
 })
 
-export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFilteredData, selectedJobUrls = [], onSelectionChange }) {
+export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUpdate }) {
+    const [jobs, setJobs] = useState([])
+    const [loading, setLoading] = useState(true)
     const [selectedJob, setSelectedJob] = useState(null)
     const [reminderJob, setReminderJob] = useState(null)
     const [copied, setCopied] = useState(false)
     const [linkCopied, setLinkCopied] = useState(false)
     const [mdCopied, setMdCopied] = useState(false)
     const [loadingDesc, setLoadingDesc] = useState(false)
+    const [selectedJobUrls, setSelectedJobUrls] = useState([])
     const [filters, setFilters] = useState({})
     const [activeFilterColumn, setActiveFilterColumn] = useState(null)
 
-    // Column Definitions for consistency between display and filtering
-    // Column Definitions for consistency between display and filtering
+    // Column Definitions
     const COLUMN_DEFS = useMemo(() => [
         {
             key: 'select',
@@ -32,21 +34,44 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
         { key: 'location', label: 'Location', getValue: j => j.location || j.city || 'N/A' },
         { key: 'salary', label: 'Salary', getValue: j => (j.min_amount && j.max_amount ? `$${j.min_amount} - $${j.max_amount}` : 'N/A'), className: "text-slate-500" },
         { key: 'date_posted', label: 'Posted', getValue: j => j.date_posted || 'Recently', className: "text-slate-500" },
-        { key: 'status', label: 'Status', getValue: j => j.my_status || 'NEW' },
     ], [])
 
     const isJobSaved = (job) => {
         return savedJobs.some(s => s.job_url === job.job_url)
     }
 
+    // Fetch applied jobs
+    useEffect(() => {
+        fetchAppliedJobs()
+    }, [])
+
+    const fetchAppliedJobs = async () => {
+        setLoading(true)
+        try {
+            const res = await api.get('/jobs')
+            const appliedJobs = res.data.filter(j => j.my_status === 'APPLIED')
+            setJobs(appliedJobs)
+        } catch (err) {
+            console.error("Failed to fetch applied jobs", err)
+        } finally {
+            setLoading(false)
+        }
+    }
+
     // Close modal on escape key
     useEffect(() => {
         const handleEsc = (e) => {
-            if (e.key === 'Escape') setSelectedJob(null)
+            if (e.key === 'Escape') {
+                if (selectedJob) {
+                    setSelectedJob(null)
+                } else {
+                    onClose()
+                }
+            }
         }
         window.addEventListener('keydown', handleEsc)
         return () => window.removeEventListener('keydown', handleEsc)
-    }, [])
+    }, [selectedJob, onClose])
 
     // Fetch description if missing
     useEffect(() => {
@@ -96,26 +121,38 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
         try {
             const res = await api.post('/jobs/fetch_desc', { url: job.job_url })
             const desc = res.data.description
-
-            // Update local selected job
             const updated = { ...job, description: desc }
             setSelectedJob(updated)
 
-            // Update parent list so we don't fetch again
+            // Update local list
+            setJobs(jobs.map(j => j.job_url === job.job_url ? updated : j))
+
             if (onJobUpdate) {
                 onJobUpdate(updated)
             }
         } catch (err) {
             console.error("Failed to fetch description", err)
-            // Optional: Mark as "failed" so we don't retry?
-            // setSelectedJob({ ...job, description: "Failed to load description." })
         } finally {
             setLoadingDesc(false)
         }
     }
 
-    // Apply filters
-    // Apply filters
+    const handleUnapplyJob = async (job) => {
+        try {
+            await api.post('/jobs/update', {
+                url: job.job_url,
+                status: 'NEW'
+            })
+            // Remove from local list
+            setJobs(jobs.filter(j => j.job_url !== job.job_url))
+            if (onJobUpdate) {
+                onJobUpdate({ ...job, my_status: 'NEW' })
+            }
+        } catch (err) {
+            console.error('Failed to unapply job:', err)
+        }
+    }
+
     // Apply filters
     const filteredJobs = useMemo(() => {
         return jobs.filter(job => {
@@ -129,22 +166,13 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
         })
     }, [jobs, filters, COLUMN_DEFS])
 
-    // Notify parent of filtered data
-    useEffect(() => {
-        if (onFilteredData) {
-            onFilteredData(filteredJobs)
-        }
-    }, [filteredJobs, onFilteredData])
-
     const toggleFilter = (columnKey, value) => {
         setFilters(prev => {
             const current = prev[columnKey]
             const safeCurrent = current || []
-
             const updated = safeCurrent.includes(value)
                 ? safeCurrent.filter(v => v !== value)
                 : [...safeCurrent, value]
-
             return { ...prev, [columnKey]: updated }
         })
     }
@@ -160,8 +188,6 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
         })
     }
 
-
-
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (activeFilterColumn && !e.target.closest('.column-filter-container')) {
@@ -172,196 +198,233 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [activeFilterColumn])
 
-    if (!jobs.length) {
+    if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-                <p>No jobs found. Start a scrape!</p>
+            <div className="fixed inset-0 z-50 bg-slate-50">
+                <div className="flex items-center justify-center h-screen">
+                    <Loader2 size={48} className="animate-spin text-blue-600" />
+                </div>
             </div>
         )
     }
 
     return (
-        <>
-            <div className="overflow-visible min-h-[400px]">
-                <table className="w-full text-left text-sm text-slate-600 relative">
-                    <thead className="bg-slate-50 text-slate-900 font-medium border-b border-slate-200">
-                        <tr>
-                            {COLUMN_DEFS.map((col) => {
-                                if (col.key === 'select') {
-                                    const allVisibleSelected = filteredJobs.length > 0 && filteredJobs.every(j => selectedJobUrls.includes(j.job_url))
-                                    const isIndeterminate = filteredJobs.some(j => selectedJobUrls.includes(j.job_url)) && !allVisibleSelected
+        <div className="fixed inset-0 z-50 bg-slate-50 overflow-y-auto">
+            {/* Header */}
+            <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={onClose}
+                        className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
+                        title="Back to Dashboard"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+                    <h1 className="text-xl font-bold text-slate-900">
+                        Applied Jobs ({jobs.length})
+                    </h1>
+                </div>
+                <div className="flex items-center gap-2">
+                    {selectedJobUrls.length > 0 && (
+                        <button
+                            onClick={() => {
+                                selectedJobUrls.forEach(url => window.open(url, '_blank'))
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-indigo-700 rounded-md hover:bg-indigo-700 transition-colors shadow-sm"
+                        >
+                            <ExternalLink size={16} />
+                            Open Selected ({selectedJobUrls.length})
+                        </button>
+                    )}
+                    <button
+                        onClick={onClose}
+                        className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+            </header>
 
-                                    return (
-                                        <th key={col.key} className="px-6 py-4 w-10">
-                                            <input
-                                                type="checkbox"
-                                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                                                checked={allVisibleSelected}
-                                                ref={input => { if (input) input.indeterminate = isIndeterminate }}
-                                                onChange={(e) => {
-                                                    if (e.target.checked) {
-                                                        // Select all visible
-                                                        const visibleUrls = filteredJobs.map(j => j.job_url)
-                                                        // Merge with existing selection to not lose others (or just set to visible? user might want cumulative?)
-                                                        // If we are filtering, usually "Select All" means "Select all filtered matches"
-                                                        // Let's merge unique
-                                                        const newSelection = [...new Set([...selectedJobUrls, ...visibleUrls])]
-                                                        onSelectionChange(newSelection)
-                                                    } else {
-                                                        // Deselect all visible
-                                                        const visibleUrls = filteredJobs.map(j => j.job_url)
-                                                        const newSelection = selectedJobUrls.filter(url => !visibleUrls.includes(url))
-                                                        onSelectionChange(newSelection)
-                                                    }
-                                                }}
-                                            />
-                                        </th>
-                                    )
-                                }
+            <main className="p-6 max-w-[1600px] mx-auto">
+                {/* Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <div className="text-slate-500 text-sm font-medium">Total Applied</div>
+                        <div className="text-2xl font-bold mt-1 text-blue-600">{jobs.length}</div>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <div className="text-slate-500 text-sm font-medium">Selected</div>
+                        <div className="text-2xl font-bold mt-1 text-indigo-600">{selectedJobUrls.length}</div>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <div className="text-slate-500 text-sm font-medium">Filtered</div>
+                        <div className="text-2xl font-bold mt-1 text-slate-600">{filteredJobs.length}</div>
+                    </div>
+                </div>
 
-                                const isFiltering = !!filters[col.key]
-                                return (
-                                    <th key={col.key} className="px-6 py-4 relative group">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span>{col.label}</span>
-                                            <div className="relative column-filter-container">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        setActiveFilterColumn(activeFilterColumn === col.key ? null : col.key)
-                                                    }}
-                                                    className={`p-1 rounded hover:bg-slate-200 transition-colors ${activeFilterColumn === col.key || isFiltering
-                                                        ? 'text-blue-600 bg-slate-100'
-                                                        : 'text-slate-300 opacity-0 group-hover:opacity-100'
-                                                        }`}
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-                                                </button>
+                {/* Jobs Table */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    {jobs.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                            <p>No applied jobs yet.</p>
+                            <p className="text-sm mt-2">Mark jobs as applied to see them here.</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-visible min-h-[400px]">
+                            <table className="w-full text-left text-sm text-slate-600 relative">
+                                <thead className="bg-slate-50 text-slate-900 font-medium border-b border-slate-200">
+                                    <tr>
+                                        {COLUMN_DEFS.map((col) => {
+                                            if (col.key === 'select') {
+                                                const allVisibleSelected = filteredJobs.length > 0 && filteredJobs.every(j => selectedJobUrls.includes(j.job_url))
+                                                const isIndeterminate = filteredJobs.some(j => selectedJobUrls.includes(j.job_url)) && !allVisibleSelected
 
-                                                {activeFilterColumn === col.key && (
-                                                    <ColumnFilter
-                                                        column={col}
-                                                        jobs={jobs}
-                                                        initialFilter={filters[col.key]}
-                                                        onApply={(val) => setColumnFilter(col.key, val)}
-                                                        onClear={() => clearColumnFilter(col.key)}
-                                                        onClose={() => setActiveFilterColumn(null)}
-                                                    />
-                                                )}
-                                            </div>
-                                        </div>
-                                    </th>
-                                )
-                            })}
-                            <th className="px-6 py-4 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                        {filteredJobs.length === 0 ? (
-                            <tr>
-                                <td colSpan={COLUMN_DEFS.length + 1} className="text-center py-12 text-slate-400">
-                                    No jobs match your filters.
-                                </td>
-                            </tr>
-                        ) : (
-                            filteredJobs.map((job, idx) => (
-                                <tr
-                                    key={idx}
-                                    onClick={() => setSelectedJob(job)}
-                                    className="hover:bg-slate-50 transition-colors group cursor-pointer"
-                                >
-                                    {COLUMN_DEFS.map((col) => {
-                                        const rawVal = col.getValue(job)
-                                        return (
-                                            <td key={col.key} className={`px-6 py-4 ${col.className || ''}`}>
-                                                {col.key === 'select' ? (
-                                                    <input
-                                                        type="checkbox"
-                                                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                                                        checked={selectedJobUrls.includes(job.job_url)}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        onChange={(e) => {
-                                                            if (e.target.checked) {
-                                                                onSelectionChange([...selectedJobUrls, job.job_url])
-                                                            } else {
-                                                                onSelectionChange(selectedJobUrls.filter(url => url !== job.job_url))
-                                                            }
-                                                        }}
-                                                    />
-                                                ) : col.key === 'title' ? (
-                                                    <div className="truncate" title={job.title}>{rawVal}</div>
-                                                ) : col.key === 'status' ? (
-                                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                                        ${job.my_status === 'NEW' ? 'bg-green-100 text-green-700' : ''}
-                                                        ${job.my_status === 'APPLIED' ? 'bg-blue-100 text-blue-700' : ''}
-                                                        ${!job.my_status ? 'bg-slate-100 text-slate-600' : ''}
-                                                    `}>
-                                                        {rawVal}
-                                                    </span>
-                                                ) : (
-                                                    rawVal
-                                                )}
+                                                return (
+                                                    <th key={col.key} className="px-6 py-4 w-10">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                            checked={allVisibleSelected}
+                                                            ref={input => { if (input) input.indeterminate = isIndeterminate }}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    const visibleUrls = filteredJobs.map(j => j.job_url)
+                                                                    const newSelection = [...new Set([...selectedJobUrls, ...visibleUrls])]
+                                                                    setSelectedJobUrls(newSelection)
+                                                                } else {
+                                                                    const visibleUrls = filteredJobs.map(j => j.job_url)
+                                                                    const newSelection = selectedJobUrls.filter(url => !visibleUrls.includes(url))
+                                                                    setSelectedJobUrls(newSelection)
+                                                                }
+                                                            }}
+                                                        />
+                                                    </th>
+                                                )
+                                            }
+
+                                            const isFiltering = !!filters[col.key]
+                                            return (
+                                                <th key={col.key} className="px-6 py-4 relative group">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span>{col.label}</span>
+                                                        <div className="relative column-filter-container">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    setActiveFilterColumn(activeFilterColumn === col.key ? null : col.key)
+                                                                }}
+                                                                className={`p-1 rounded hover:bg-slate-200 transition-colors ${activeFilterColumn === col.key || isFiltering
+                                                                    ? 'text-blue-600 bg-slate-100'
+                                                                    : 'text-slate-300 opacity-0 group-hover:opacity-100'
+                                                                    }`}
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                                                            </button>
+
+                                                            {activeFilterColumn === col.key && (
+                                                                <ColumnFilter
+                                                                    column={col}
+                                                                    jobs={jobs}
+                                                                    initialFilter={filters[col.key]}
+                                                                    onApply={(val) => setColumnFilter(col.key, val)}
+                                                                    onClear={() => clearColumnFilter(col.key)}
+                                                                    onClose={() => setActiveFilterColumn(null)}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </th>
+                                            )
+                                        })}
+                                        <th className="px-6 py-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {filteredJobs.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={COLUMN_DEFS.length + 1} className="text-center py-12 text-slate-400">
+                                                No jobs match your filters.
                                             </td>
-                                        )
-                                    })}
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                title={isJobSaved(job) ? "Unsave Job" : "Save Job"}
-                                                className={`p-1 hover:bg-slate-200 rounded ${isJobSaved(job) ? 'text-indigo-600' : 'text-slate-400'}`}
-                                                onClick={(e) => { e.stopPropagation(); onToggleSave && onToggleSave(job) }}
+                                        </tr>
+                                    ) : (
+                                        filteredJobs.map((job, idx) => (
+                                            <tr
+                                                key={idx}
+                                                onClick={() => setSelectedJob(job)}
+                                                className="hover:bg-slate-50 transition-colors group cursor-pointer"
                                             >
-                                                <Bookmark size={16} fill={isJobSaved(job) ? "currentColor" : "none"} />
-                                            </button>
-                                            <button
-                                                title="Open Link"
-                                                className="p-1 hover:bg-slate-200 rounded text-blue-600"
-                                                onClick={(e) => { e.stopPropagation(); window.open(job.job_url, '_blank') }}
-                                            >
-                                                <ExternalLink size={16} />
-                                            </button>
-                                            <button
-                                                title="Remind Me"
-                                                className="p-1 hover:bg-slate-200 rounded text-amber-500"
-                                                onClick={(e) => { e.stopPropagation(); setReminderJob(job) }}
-                                            >
-                                                <Bell size={16} />
-                                            </button>
-                                            <button
-                                                title="Mark Applied"
-                                                className="p-1 hover:bg-slate-200 rounded text-green-600"
-                                                onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    try {
-                                                        await api.post('/jobs/update', {
-                                                            url: job.job_url,
-                                                            status: 'APPLIED'
-                                                        })
-                                                        if (onJobUpdate) {
-                                                            onJobUpdate({ ...job, my_status: 'APPLIED' })
-                                                        }
-                                                    } catch (err) {
-                                                        console.error('Failed to mark as applied:', err)
-                                                    }
-                                                }}
-                                            >
-                                                <CheckCircle size={16} />
-                                            </button>
-                                            <button
-                                                title="Hide"
-                                                className="p-1 hover:bg-slate-200 rounded text-slate-400"
-                                                onClick={(e) => { e.stopPropagation(); /* TODO: Implement hide logic */ }}
-                                            >
-                                                <EyeOff size={16} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                                                {COLUMN_DEFS.map((col) => {
+                                                    const rawVal = col.getValue(job)
+                                                    return (
+                                                        <td key={col.key} className={`px-6 py-4 ${col.className || ''}`}>
+                                                            {col.key === 'select' ? (
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                                    checked={selectedJobUrls.includes(job.job_url)}
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    onChange={(e) => {
+                                                                        if (e.target.checked) {
+                                                                            setSelectedJobUrls([...selectedJobUrls, job.job_url])
+                                                                        } else {
+                                                                            setSelectedJobUrls(selectedJobUrls.filter(url => url !== job.job_url))
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            ) : col.key === 'title' ? (
+                                                                <div className="truncate" title={job.title}>{rawVal}</div>
+                                                            ) : (
+                                                                rawVal
+                                                            )}
+                                                        </td>
+                                                    )
+                                                })}
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            title={isJobSaved(job) ? "Unsave Job" : "Save Job"}
+                                                            className={`p-1 hover:bg-slate-200 rounded ${isJobSaved(job) ? 'text-indigo-600' : 'text-slate-400'}`}
+                                                            onClick={(e) => { e.stopPropagation(); onToggleSave && onToggleSave(job) }}
+                                                        >
+                                                            <Bookmark size={16} fill={isJobSaved(job) ? "currentColor" : "none"} />
+                                                        </button>
+                                                        <button
+                                                            title="Open Link"
+                                                            className="p-1 hover:bg-slate-200 rounded text-blue-600"
+                                                            onClick={(e) => { e.stopPropagation(); window.open(job.job_url, '_blank') }}
+                                                        >
+                                                            <ExternalLink size={16} />
+                                                        </button>
+                                                        <button
+                                                            title="Remind Me"
+                                                            className="p-1 hover:bg-slate-200 rounded text-amber-500"
+                                                            onClick={(e) => { e.stopPropagation(); setReminderJob(job) }}
+                                                        >
+                                                            <Bell size={16} />
+                                                        </button>
+                                                        <button
+                                                            title="Unapply Job"
+                                                            className="p-1 hover:bg-slate-200 rounded text-red-600"
+                                                            onClick={async (e) => {
+                                                                e.stopPropagation();
+                                                                if (window.confirm('Remove this job from Applied list?')) {
+                                                                    handleUnapplyJob(job)
+                                                                }
+                                                            }}
+                                                        >
+                                                            <XCircle size={16} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </main>
 
             {/* Job Details Modal */}
             {selectedJob && (
@@ -411,8 +474,8 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                         {selectedJob.max_amount ? `$${selectedJob.max_amount}` : ''}
                                     </span>
                                 )}
-                                <span className="px-3 py-1 text-xs font-semibold bg-slate-100 text-slate-600 rounded-full capitalize border border-slate-200">
-                                    {selectedJob.site || 'Unknown Source'}
+                                <span className="px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full capitalize border border-blue-200">
+                                    APPLIED
                                 </span>
                             </div>
 
@@ -466,7 +529,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                         {/* Footer */}
                         <div className="p-4 sm:p-6 border-t border-slate-100 bg-slate-50/80 flex justify-between items-center gap-4">
                             <div className="text-xs text-slate-400 font-medium hidden sm:block">
-                                Job ID: {selectedJob.id || 'N/A'} • Found {selectedJob.date_found ? new Date(selectedJob.date_found).toLocaleDateString() : 'Recently'}
+                                Job ID: {selectedJob.id || 'N/A'} • Applied
                             </div>
                             <div className="flex gap-3 ml-auto">
                                 <button
@@ -483,17 +546,16 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                     Remind Me
                                 </button>
                                 <button
-                                    onClick={() => onToggleSave && onToggleSave(selectedJob)}
-                                    className={`
-                                        px-5 py-2.5 text-sm font-medium border rounded-xl transition-colors flex items-center gap-2 shadow-sm
-                                        ${isJobSaved(selectedJob)
-                                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
-                                            : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
+                                    onClick={async () => {
+                                        if (window.confirm('Remove this job from Applied list?')) {
+                                            await handleUnapplyJob(selectedJob)
+                                            setSelectedJob(null)
                                         }
-                                    `}
+                                    }}
+                                    className="px-5 py-2.5 text-sm font-medium text-white bg-red-600 border border-transparent rounded-xl hover:bg-red-700 transition-colors flex items-center gap-2 shadow-lg shadow-red-600/20"
                                 >
-                                    <Bookmark size={16} fill={isJobSaved(selectedJob) ? "currentColor" : "none"} />
-                                    {isJobSaved(selectedJob) ? 'Saved' : 'Save'}
+                                    <XCircle size={16} />
+                                    Unapply Job
                                 </button>
                                 <a
                                     href={selectedJob.job_url}
@@ -501,7 +563,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                     rel="noopener noreferrer"
                                     className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg shadow-blue-600/20"
                                 >
-                                    Apply Now <ExternalLink size={16} />
+                                    View Original <ExternalLink size={16} />
                                 </a>
                             </div>
                         </div>
@@ -511,16 +573,13 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
             {reminderJob && (
                 <ReminderModal job={reminderJob} onClose={() => setReminderJob(null)} />
             )}
-        </>
+        </div>
     )
 }
 
 const ColumnFilter = ({ column, jobs, initialFilter, onApply, onClear, onClose }) => {
-    // Memoize unique values to calculate only when jobs/column change
     const uniqueValues = useMemo(() => Array.from(new Set(jobs.map(j => column.getValue(j)))).sort(), [jobs, column])
     const [searchTerm, setSearchTerm] = useState('')
-
-    // Local state for deferred filtering
     const [tempFilter, setTempFilter] = useState(initialFilter)
 
     const displayValues = uniqueValues.filter(v =>
@@ -536,11 +595,9 @@ const ColumnFilter = ({ column, jobs, initialFilter, onApply, onClear, onClose }
 
     const handleCheckboxChange = (val) => {
         if (isAllSelected) {
-            // Transition from "All" to "All minus one"
             const allOthers = uniqueValues.filter(v => v !== val)
             setTempFilter(allOthers)
         } else {
-            // Toggle in local array
             const current = tempFilter || []
             const updated = current.includes(val)
                 ? current.filter(v => v !== val)
@@ -551,9 +608,9 @@ const ColumnFilter = ({ column, jobs, initialFilter, onApply, onClear, onClose }
 
     const handleSelectAll = (select) => {
         if (select) {
-            setTempFilter(undefined) // Select All
+            setTempFilter(undefined)
         } else {
-            setTempFilter([]) // Select None
+            setTempFilter([])
         }
     }
 
@@ -594,7 +651,6 @@ const ColumnFilter = ({ column, jobs, initialFilter, onApply, onClear, onClose }
                             if (searchTerm) {
                                 const visibleValues = displayValues
                                 if (e.target.checked) {
-                                    // Add visible to local selection
                                     let base = isAllSelected ? [...uniqueValues] : (tempFilter ? [...tempFilter] : [])
                                     visibleValues.forEach(v => {
                                         if (!base.includes(v)) base.push(v)
@@ -605,7 +661,6 @@ const ColumnFilter = ({ column, jobs, initialFilter, onApply, onClear, onClose }
                                         setTempFilter(base)
                                     }
                                 } else {
-                                    // Remove visible from local selection
                                     let base = isAllSelected ? [...uniqueValues] : (tempFilter ? [...tempFilter] : [])
                                     base = base.filter(v => !visibleValues.includes(v))
                                     setTempFilter(base)
