@@ -22,6 +22,9 @@ export function ReminderModal({ job, onClose }) {
     const [selectedAccount, setSelectedAccount] = useState(null)
     const [reminderType, setReminderType] = useState('calendar') // calendar, email
     const [dateTime, setDateTime] = useState(null)
+    const [attendees, setAttendees] = useState('')
+    const [ccAttendees, setCcAttendees] = useState('')
+    const [reminderMinutes, setReminderMinutes] = useState('15')
 
     // Set default datetime to tomorrow 9am
     useEffect(() => {
@@ -108,7 +111,11 @@ export function ReminderModal({ job, onClose }) {
                     const endStr = formatLocal(end)
 
                     const location = encodeURIComponent(job.location || '')
-                    const url = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&startdt=${startStr}&enddt=${endStr}&subject=${subject}&body=${body}&location=${location}`
+                    const to = encodeURIComponent(attendees)
+                    const cc = encodeURIComponent(ccAttendees)
+                    const reminder = encodeURIComponent(reminderMinutes)
+
+                    const url = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&startdt=${startStr}&enddt=${endStr}&subject=${subject}&body=${body}&location=${location}&to=${to}&cc=${cc}&reminder=${reminder}`
 
                     window.open(url, '_blank')
                 } else {
@@ -220,17 +227,65 @@ export function ReminderModal({ job, onClose }) {
                             </div>
 
                             {reminderType === 'calendar' && (
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">When?</label>
-                                    <Flatpickr
-                                        data-enable-time
-                                        value={dateTime}
-                                        onChange={([date]) => {
-                                            if (date) setDateTime(date)
-                                        }}
-                                        options={FLATPICKR_OPTIONS}
-                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                    />
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">When?</label>
+                                        <Flatpickr
+                                            data-enable-time
+                                            value={dateTime}
+                                            onChange={([date]) => {
+                                                if (date) setDateTime(date)
+                                            }}
+                                            options={FLATPICKR_OPTIONS}
+                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                        />
+                                    </div>
+
+                                    {selectedAccount === 'outlook-web' && (
+                                        <>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="col-span-2">
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Attendees (To)</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="email1@example.com, email2@example.com"
+                                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        value={attendees}
+                                                        onChange={e => setAttendees(e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Optional (Cc)</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="manager@example.com"
+                                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        value={ccAttendees}
+                                                        onChange={e => setCcAttendees(e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Reminder Alert</label>
+                                                    <select
+                                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        value={reminderMinutes}
+                                                        onChange={e => setReminderMinutes(e.target.value)}
+                                                    >
+                                                        <option value="0">At time of event</option>
+                                                        <option value="5">5 minutes before</option>
+                                                        <option value="15">15 minutes before</option>
+                                                        <option value="30">30 minutes before</option>
+                                                        <option value="60">1 hour before</option>
+                                                        <option value="1440">1 day before</option>
+                                                    </select>
+                                                </div>
+                                                <div className="col-span-2 bg-blue-50 p-2 rounded-md text-xs text-blue-700 flex items-start gap-2">
+                                                    <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                                                    <p>Note: To add a <strong>Teams Meeting</strong>, you must manually toggle the switch in the Outlook window that opens.</p>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             )}
 
