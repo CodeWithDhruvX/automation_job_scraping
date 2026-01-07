@@ -279,10 +279,6 @@ export function ReminderModal({ job, onClose }) {
                                                         <option value="1440">1 day before</option>
                                                     </select>
                                                 </div>
-                                                <div className="col-span-2 bg-blue-50 p-2 rounded-md text-xs text-blue-700 flex items-start gap-2">
-                                                    <AlertCircle size={14} className="mt-0.5 shrink-0" />
-                                                    <p>Note: To add a <strong>Teams Meeting</strong>, you must manually toggle the switch in the Outlook window that opens.</p>
-                                                </div>
                                             </div>
                                         </>
                                     )}
