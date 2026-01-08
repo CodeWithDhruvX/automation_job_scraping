@@ -606,37 +606,138 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                         </div>
 
                         {/* Footer */}
-                        <div className="p-4 sm:p-6 border-t border-slate-100 bg-slate-50/80 flex justify-between items-center gap-4">
-                            <div className="text-xs text-slate-400 font-medium hidden sm:block">
-                                Job ID: {selectedJob.id || 'N/A'} • Found {selectedJob.date_found ? new Date(selectedJob.date_found).toLocaleDateString() : 'Recently'}
+                        <div className="p-4 sm:p-6 border-t border-slate-100 bg-slate-50/80 flex flex-col xl:flex-row justify-between items-center gap-4">
+                            <div className="flex items-center gap-4 w-full xl:w-auto justify-between xl:justify-start">
+                                <div className="text-xs text-slate-400 font-medium">
+                                    Job ID: {selectedJob.id || 'N/A'} • Found {selectedJob.date_found ? new Date(selectedJob.date_found).toLocaleDateString() : 'Recently'}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        title="Hide Job"
+                                        onClick={async () => {
+                                            try {
+                                                await api.post('/jobs/update', { url: selectedJob.job_url, status: 'HIDDEN' })
+                                                const updated = { ...selectedJob, my_status: 'HIDDEN' }
+                                                setSelectedJob(updated)
+                                                if (onJobUpdate) onJobUpdate(updated)
+                                                // Close modal when hiding
+                                                setSelectedJob(null)
+                                            } catch (err) { console.error('Failed to hide:', err) }
+                                        }}
+                                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+                                    >
+                                        <EyeOff size={18} />
+                                    </button>
+                                    {onDeleteJob && (
+                                        <button
+                                            title="Delete Job"
+                                            onClick={() => {
+                                                if (window.confirm('Are you sure you want to delete this job?')) {
+                                                    onDeleteJob(selectedJob)
+                                                    setSelectedJob(null)
+                                                }
+                                            }}
+                                            className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                            <div className="flex gap-3 ml-auto">
-                                <button
-                                    onClick={() => setSelectedJob(null)}
-                                    className="px-5 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
-                                >
-                                    Close
-                                </button>
+
+                            <div className="flex flex-wrap items-center justify-end gap-2 w-full xl:w-auto">
+                                {/* Status Actions */}
+                                {selectedJob.my_status !== 'REJECTED' && (
+                                    <button
+                                        onClick={async () => {
+                                            if (window.confirm('Mark this job as REJECTED?')) {
+                                                try {
+                                                    await api.post('/jobs/update', { url: selectedJob.job_url, status: 'REJECTED' })
+                                                    const updated = { ...selectedJob, my_status: 'REJECTED' }
+                                                    setSelectedJob(updated)
+                                                    if (onJobUpdate) onJobUpdate(updated)
+                                                } catch (err) { console.error('Failed to reject:', err) }
+                                            }
+                                        }}
+                                        className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-xl hover:bg-red-100 transition-colors shadow-sm flex items-center gap-1.5"
+                                    >
+                                        <Ban size={16} /> <span className="hidden sm:inline">Reject</span>
+                                    </button>
+                                )}
+                                {selectedJob.my_status !== 'INTERVIEW' && (
+                                    <button
+                                        onClick={async () => {
+                                            if (window.confirm('Mark this job as INTERVIEW?')) {
+                                                try {
+                                                    await api.post('/jobs/update', { url: selectedJob.job_url, status: 'INTERVIEW' })
+                                                    const updated = { ...selectedJob, my_status: 'INTERVIEW' }
+                                                    setSelectedJob(updated)
+                                                    if (onJobUpdate) onJobUpdate(updated)
+                                                } catch (err) { console.error('Failed to mark interview:', err) }
+                                            }
+                                        }}
+                                        className="px-3 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors shadow-sm flex items-center gap-1.5"
+                                    >
+                                        <UserCheck size={16} /> <span className="hidden sm:inline">Interview</span>
+                                    </button>
+                                )}
+
+                                {selectedJob.my_status === 'APPLIED' ? (
+                                    <button
+                                        onClick={async () => {
+                                            if (window.confirm('Mark this job as NOT applied?')) {
+                                                try {
+                                                    await api.post('/jobs/update', { url: selectedJob.job_url, status: 'NEW' })
+                                                    const updated = { ...selectedJob, my_status: 'NEW' }
+                                                    setSelectedJob(updated)
+                                                    if (onJobUpdate) onJobUpdate(updated)
+                                                } catch (err) { console.error('Failed to unapply:', err) }
+                                            }
+                                        }}
+                                        className="px-3 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-1.5"
+                                    >
+                                        <XCircle size={16} /> <span className="hidden sm:inline">Unapply</span>
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                await api.post('/jobs/update', { url: selectedJob.job_url, status: 'APPLIED' })
+                                                const updated = { ...selectedJob, my_status: 'APPLIED' }
+                                                setSelectedJob(updated)
+                                                if (onJobUpdate) onJobUpdate(updated)
+                                            } catch (err) { console.error('Failed to mark applied:', err) }
+                                        }}
+                                        className="px-3 py-2 text-sm font-medium text-green-600 bg-green-50 border border-green-100 rounded-xl hover:bg-green-100 transition-colors shadow-sm flex items-center gap-1.5"
+                                    >
+                                        <CheckCircle size={16} /> <span className="hidden sm:inline">Applied</span>
+                                    </button>
+                                )}
+
+                                <div className="w-px h-6 bg-slate-300 mx-1 hidden sm:block"></div>
+
+                                {/* Tools */}
                                 <button
                                     onClick={() => setReminderJob(selectedJob)}
-                                    className="px-5 py-2.5 text-sm font-medium text-amber-600 bg-amber-50 border border-amber-100 rounded-xl hover:bg-amber-100 transition-colors shadow-sm flex items-center gap-2"
+                                    className="p-2.5 text-sm font-medium text-amber-600 bg-amber-50 border border-amber-100 rounded-xl hover:bg-amber-100 transition-colors shadow-sm"
+                                    title="Remind Me"
                                 >
-                                    <Bell size={16} />
-                                    Remind Me
+                                    <Bell size={18} />
                                 </button>
                                 <button
                                     onClick={() => onToggleSave && onToggleSave(selectedJob)}
                                     className={`
-                                        px-5 py-2.5 text-sm font-medium border rounded-xl transition-colors flex items-center gap-2 shadow-sm
+                                        p-2.5 text-sm font-medium border rounded-xl transition-colors shadow-sm
                                         ${isJobSaved(selectedJob)
                                             ? 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
                                             : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
                                         }
                                     `}
+                                    title={isJobSaved(selectedJob) ? 'Unsave' : 'Save'}
                                 >
-                                    <Bookmark size={16} fill={isJobSaved(selectedJob) ? "currentColor" : "none"} />
-                                    {isJobSaved(selectedJob) ? 'Saved' : 'Save'}
+                                    <Bookmark size={18} fill={isJobSaved(selectedJob) ? "currentColor" : "none"} />
                                 </button>
+
                                 <a
                                     href={selectedJob.job_url}
                                     target="_blank"
