@@ -55,7 +55,9 @@ export function SmartTabView({ onClose, smartTabs, onManageTabs, savedJobs, onTo
 
             try {
                 const res = await api.get('/jobs', { params: { search_id: activeTabId } })
-                setActiveJobs(res.data)
+                // Filter out hidden jobs
+                const visibleJobs = res.data.filter(j => j.my_status !== 'HIDDEN')
+                setActiveJobs(visibleJobs)
             } catch (err) {
                 console.error(`Failed to fetch jobs for tab ${activeTabId}`, err)
             } finally {
@@ -365,8 +367,12 @@ export function SmartTabView({ onClose, smartTabs, onManageTabs, savedJobs, onTo
                                             selectedJobUrls={selectedJobUrls}
                                             onSelectionChange={setSelectedJobUrls}
                                             onJobUpdate={(updatedJob) => {
-                                                // Optimistic update for local list
-                                                setActiveJobs(prev => prev.map(j => j.job_url === updatedJob.job_url ? updatedJob : j))
+                                                if (updatedJob.my_status === 'HIDDEN') {
+                                                    setActiveJobs(prev => prev.filter(j => j.job_url !== updatedJob.job_url))
+                                                } else {
+                                                    // Optimistic update for local list
+                                                    setActiveJobs(prev => prev.map(j => j.job_url === updatedJob.job_url ? updatedJob : j))
+                                                }
                                             }}
                                             onDeleteJob={handleDeleteJob}
                                         />

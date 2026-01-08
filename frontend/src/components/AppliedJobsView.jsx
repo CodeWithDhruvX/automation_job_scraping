@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { ExternalLink, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, ArrowLeft, Upload } from 'lucide-react'
+import { ExternalLink, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, ArrowLeft, Upload, Ban, EyeOff } from 'lucide-react'
 import { ReminderModal } from './ReminderModal'
 
 const api = axios.create({
@@ -182,6 +182,49 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
         }
     }
 
+    const handleRejectJob = async (job) => {
+        try {
+            await api.post('/jobs/update', {
+                url: job.job_url,
+                status: 'REJECTED'
+            })
+            // Remove from local list
+            setJobs(jobs.filter(j => j.job_url !== job.job_url))
+            if (onJobUpdate) {
+                onJobUpdate({ ...job, my_status: 'REJECTED' })
+            }
+        } catch (err) {
+            console.error('Failed to reject job:', err)
+        }
+    }
+
+    const handleRejectSelected = async () => {
+        if (!window.confirm(`Are you sure you want to reject ${selectedJobUrls.length} jobs?`)) return
+
+        try {
+            await Promise.all(selectedJobUrls.map(async (url) => {
+                await api.post('/jobs/update', {
+                    url: url,
+                    status: 'REJECTED'
+                })
+                // Find existing job to notify parent
+                const job = jobs.find(j => j.job_url === url)
+                if (job && onJobUpdate) {
+                    onJobUpdate({ ...job, my_status: 'REJECTED' })
+                }
+            }))
+
+            // Remove from local list
+            setJobs(jobs.filter(j => !selectedJobUrls.includes(j.job_url)))
+            setSelectedJobUrls([])
+            alert(`Successfully rejected ${selectedJobUrls.length} jobs.`)
+
+        } catch (err) {
+            console.error('Failed to reject selected jobs:', err)
+            alert('Failed to reject some jobs. Please try again.')
+        }
+    }
+
     const handleImportExcel = async (file) => {
         if (!file) return
 
@@ -353,6 +396,13 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
                                 Unapply Selected ({selectedJobUrls.length})
                             </button>
                             <button
+                                onClick={handleRejectSelected}
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-red-700 rounded-md hover:bg-red-700 transition-colors shadow-sm"
+                            >
+                                <Ban size={16} />
+                                Reject Selected ({selectedJobUrls.length})
+                            </button>
+                            <button
                                 onClick={() => {
                                     selectedJobUrls.forEach(url => window.open(url, '_blank'))
                                 }}
@@ -370,6 +420,14 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
                     >
                         <Upload size={16} />
                         Import Excel
+                    </button>
+                    <button
+                        onClick={() => window.location.hash = 'rejected-jobs'}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-md hover:bg-slate-100 transition-colors shadow-sm"
+                        title="View Rejected Jobs"
+                    >
+                        <Ban size={16} className="text-red-500" />
+                        Rejected Jobs
                     </button>
                     <button
                         onClick={onClose}
@@ -548,6 +606,40 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
                                                             }}
                                                         >
                                                             <XCircle size={16} />
+                                                        </button>
+                                                        <button
+                                                            title="Reject Job"
+                                                            className="p-1 hover:bg-slate-200 rounded text-red-600"
+                                                            onClick={async (e) => {
+                                                                e.stopPropagation();
+                                                                if (window.confirm('Mark this job as REJECTED?')) {
+                                                                    handleRejectJob(job)
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Ban size={16} />
+                                                        </button>
+                                                        <button
+                                                            title="Hide"
+                                                            className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-600"
+                                                            onClick={async (e) => {
+                                                                e.stopPropagation();
+                                                                try {
+                                                                    await api.post('/jobs/update', {
+                                                                        url: job.job_url,
+                                                                        status: 'HIDDEN'
+                                                                    })
+                                                                    // Remove from local list
+                                                                    setJobs(jobs.filter(j => j.job_url !== job.job_url))
+                                                                    if (onJobUpdate) {
+                                                                        onJobUpdate({ ...job, my_status: 'HIDDEN' })
+                                                                    }
+                                                                } catch (err) {
+                                                                    console.error('Failed to hide job:', err)
+                                                                }
+                                                            }}
+                                                        >
+                                                            <EyeOff size={16} />
                                                         </button>
                                                     </div>
                                                 </td>

@@ -7,6 +7,7 @@ import { SettingsModal } from './components/SettingsModal'
 import { AppliedJobsView } from './components/AppliedJobsView'
 import { SmartTabView } from './components/SmartTabView'
 import { SmartTabModal } from './components/SmartTabModal'
+import { RejectedJobsView } from './components/RejectedJobsView'
 import { LayoutDashboard, RefreshCw, Trash2, X, Download, ExternalLink, Settings, Upload, Sparkles } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
@@ -26,6 +27,7 @@ function App() {
   const [selectedJobUrls, setSelectedJobUrls] = useState([])
   const [showSettings, setShowSettings] = useState(false)
   const [showAppliedJobsView, setShowAppliedJobsView] = useState(false)
+  const [showRejectedJobsView, setShowRejectedJobsView] = useState(false)
 
   // Smart Tab State
   const [showSmartTabView, setShowSmartTabView] = useState(false)
@@ -98,6 +100,8 @@ function App() {
       setShowAppliedJobsView(true)
     } else if (window.location.hash === '#smart-tabs') {
       setShowSmartTabView(true)
+    } else if (window.location.hash === '#rejected-jobs') {
+      setShowRejectedJobsView(true)
     }
   }, [])
 
@@ -110,9 +114,14 @@ function App() {
       } else if (window.location.hash === '#smart-tabs') {
         setShowSmartTabView(true)
         setShowAppliedJobsView(false)
+      } else if (window.location.hash === '#rejected-jobs') {
+        setShowRejectedJobsView(true)
+        setShowAppliedJobsView(false)
+        setShowSmartTabView(false)
       } else {
         setShowAppliedJobsView(false)
         setShowSmartTabView(false)
+        setShowRejectedJobsView(false)
       }
     }
 
@@ -157,8 +166,9 @@ function App() {
         params.search_id = searchId
       }
       const res = await api.get('/jobs', { params })
-      setJobs(res.data)
-      setAllJobs(res.data) // Store all jobs for counts
+      const visibleJobs = res.data.filter(j => j.my_status !== 'HIDDEN')
+      setJobs(visibleJobs)
+      setAllJobs(visibleJobs) // Store all jobs for counts
     } catch (err) {
       console.error("Failed to fetch jobs", err)
     } finally {
@@ -364,8 +374,13 @@ function App() {
   }
 
   const handleJobUpdate = (updatedJob) => {
-    setJobs(prevJobs => prevJobs.map(j => j.job_url === updatedJob.job_url ? { ...j, ...updatedJob } : j))
-    setAllJobs(prevAllJobs => prevAllJobs.map(j => j.job_url === updatedJob.job_url ? { ...j, ...updatedJob } : j))
+    if (updatedJob.my_status === 'HIDDEN') {
+      setJobs(prev => prev.filter(j => j.job_url !== updatedJob.job_url))
+      setAllJobs(prev => prev.filter(j => j.job_url !== updatedJob.job_url))
+    } else {
+      setJobs(prevJobs => prevJobs.map(j => j.job_url === updatedJob.job_url ? { ...j, ...updatedJob } : j))
+      setAllJobs(prevAllJobs => prevAllJobs.map(j => j.job_url === updatedJob.job_url ? { ...j, ...updatedJob } : j))
+    }
   }
 
   const handleToggleSaveJob = (job) => {
@@ -840,6 +855,19 @@ function App() {
       </main >
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+
+
+      {showRejectedJobsView && (
+        <RejectedJobsView
+          onClose={() => {
+            window.location.hash = ''
+            setShowRejectedJobsView(false)
+          }}
+          savedJobs={savedJobs}
+          onToggleSave={handleToggleSaveJob}
+          onJobUpdate={handleJobUpdate}
+        />
+      )}
 
       {showAppliedJobsView && (
         <AppliedJobsView

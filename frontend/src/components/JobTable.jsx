@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, Trash2, Search } from 'lucide-react'
+import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, Trash2, Search, Ban } from 'lucide-react'
 import { ReminderModal } from './ReminderModal'
 
 const api = axios.create({
@@ -419,8 +419,23 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                             )}
                                             <button
                                                 title="Hide"
-                                                className="p-1 hover:bg-slate-200 rounded text-slate-400"
-                                                onClick={(e) => { e.stopPropagation(); /* TODO: Implement hide logic */ }}
+                                                className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-600"
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    try {
+                                                        await api.post('/jobs/update', {
+                                                            url: job.job_url,
+                                                            status: 'HIDDEN'
+                                                        })
+                                                        if (onJobUpdate) {
+                                                            // Optimistic ID removal or status update
+                                                            // Ideally, valid statuses are NEW, APPLIED, REJECTED, HIDDEN
+                                                            onJobUpdate({ ...job, my_status: 'HIDDEN' })
+                                                        }
+                                                    } catch (err) {
+                                                        console.error('Failed to hide job:', err)
+                                                    }
+                                                }}
                                             >
                                                 <EyeOff size={16} />
                                             </button>
@@ -431,6 +446,30 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                                     onClick={(e) => { e.stopPropagation(); onDeleteJob(job) }}
                                                 >
                                                     <Trash2 size={16} />
+                                                </button>
+                                            )}
+                                            {job.my_status !== 'REJECTED' && (
+                                                <button
+                                                    title="Reject Job"
+                                                    className="p-1 hover:bg-red-50 rounded text-slate-400 hover:text-red-600"
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        if (window.confirm('Mark this job as REJECTED?')) {
+                                                            try {
+                                                                await api.post('/jobs/update', {
+                                                                    url: job.job_url,
+                                                                    status: 'REJECTED'
+                                                                })
+                                                                if (onJobUpdate) {
+                                                                    onJobUpdate({ ...job, my_status: 'REJECTED' })
+                                                                }
+                                                            } catch (err) {
+                                                                console.error('Failed to reject job:', err)
+                                                            }
+                                                        }
+                                                    }}
+                                                >
+                                                    <Ban size={16} />
                                                 </button>
                                             )}
                                         </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { X, Calendar, Mail, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { X, Calendar, Mail, Loader2, CheckCircle, AlertCircle, StickyNote } from 'lucide-react'
 import Flatpickr from "react-flatpickr";
 import "flatpickr/dist/themes/airbnb.css";
 
@@ -20,7 +20,7 @@ export function ReminderModal({ job, onClose }) {
     const [submitting, setSubmitting] = useState(false)
     const [step, setStep] = useState('select') // select, form, success
     const [selectedAccount, setSelectedAccount] = useState(null)
-    const [reminderType, setReminderType] = useState('calendar') // calendar, email
+    const [reminderType, setReminderType] = useState('calendar') // calendar, email, onenote
     const [dateTime, setDateTime] = useState(null)
     const [attendees, setAttendees] = useState('')
     const [ccAttendees, setCcAttendees] = useState('')
@@ -76,12 +76,12 @@ export function ReminderModal({ job, onClose }) {
     }
 
     const handleSubmit = async () => {
-        if (!selectedAccount) return
+        if (reminderType !== 'onenote' && !selectedAccount) return
         setSubmitting(true)
 
         try {
-            // Handle Static Outlook Web
-            if (selectedAccount === 'outlook-web') {
+            // Handle Static Outlook Web or OneNote
+            if (reminderType === 'onenote' || selectedAccount === 'outlook-web') {
                 if (reminderType === 'calendar') {
                     const start = dateTime ? new Date(dateTime) : new Date()
                     const end = new Date(start.getTime() + 30 * 60000) // 30 mins
@@ -118,6 +118,39 @@ export function ReminderModal({ job, onClose }) {
                     const url = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&startdt=${startStr}&enddt=${endStr}&subject=${subject}&body=${body}&location=${location}&to=${to}&cc=${cc}&reminder=${reminder}`
 
                     window.open(url, '_blank')
+                } else if (reminderType === 'onenote') {
+                    // Copy to Clipboard Logic
+                    try {
+                        const htmlContent = `
+                            <h1 style="color:#2e1065; margin-bottom:8px;">${job.title}</h1>
+                            <p style="font-weight:bold; margin:0;">${job.company} - ${job.location || 'Remote'}</p>
+                            <p style="margin-bottom:16px;"><a href="${job.job_url}">View Job Posting</a></p>
+                            <hr />
+                            <div style="margin-top:16px; white-space: pre-wrap;">${description || 'No description available.'}</div>
+                        `
+
+                        const textContent = `${job.title}\n${job.company} - ${job.location || 'Remote'}\nLink: ${job.job_url}\n\n${description || ''}`
+
+                        const blobHtml = new Blob([htmlContent], { type: 'text/html' })
+                        const blobText = new Blob([textContent], { type: 'text/plain' })
+
+                        const data = [new ClipboardItem({
+                            'text/html': blobHtml,
+                            'text/plain': blobText
+                        })]
+
+                        await navigator.clipboard.write(data)
+
+                        // Show success message briefly inside modal logic if needed,
+                        // but we rely on the generic success step below
+                    } catch (err) {
+                        console.error("Clipboard write failed", err)
+                        // Fallback usually not needed for modern browsers in secure context,
+                        // but alert if it fails
+                        alert("Failed to copy to clipboard. Please try again.")
+                        setSubmitting(false)
+                        return
+                    }
                 } else {
                     // Mailto for email
                     const subject = encodeURIComponent(`Reminder: ${job.title}`)
@@ -165,7 +198,7 @@ export function ReminderModal({ job, onClose }) {
             />
             <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/50">
-                    <h3 className="font-bold text-slate-900">Set Reminder</h3>
+                    <h3 className="font-bold text-slate-900">Set Reminder / Save</h3>
                     <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600">
                         <X size={20} />
                     </button>
@@ -192,37 +225,51 @@ export function ReminderModal({ job, onClose }) {
                             <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
                                 <CheckCircle size={24} />
                             </div>
-                            <p className="text-lg font-medium text-slate-900">Reminder Set!</p>
+                            <p className="text-lg font-medium text-slate-900">Action Complete!</p>
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Account</label>
-                                <select
-                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={selectedAccount || ''}
-                                    onChange={e => setSelectedAccount(e.target.value)}
-                                >
-                                    {accounts.map(acc => (
-                                        <option key={acc.id} value={acc.id}>
-                                            {acc.isStatic ? acc.provider : `${acc.provider} (${acc.email})`}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                            {reminderType !== 'onenote' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Account</label>
+                                    <select
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        value={selectedAccount || ''}
+                                        onChange={e => setSelectedAccount(e.target.value)}
+                                    >
+                                        {accounts.map(acc => (
+                                            <option key={acc.id} value={acc.id}>
+                                                {acc.isStatic ? acc.provider : `${acc.provider} (${acc.email})`}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             <div className="flex gap-2 p-1 bg-slate-100 rounded-lg">
                                 <button
-                                    className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${reminderType === 'calendar' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all flex justify-center items-center gap-2 ${reminderType === 'calendar' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                     onClick={() => setReminderType('calendar')}
+                                    title="Add to Calendar"
                                 >
-                                    Calendar Event
+                                    <Calendar size={16} />
+                                    <span className="hidden sm:inline">Calendar</span>
                                 </button>
                                 <button
-                                    className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${reminderType === 'email' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all flex justify-center items-center gap-2 ${reminderType === 'email' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                     onClick={() => setReminderType('email')}
+                                    title="Send Email"
                                 >
-                                    Email Self
+                                    <Mail size={16} />
+                                    <span className="hidden sm:inline">Email</span>
+                                </button>
+                                <button
+                                    className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all flex justify-center items-center gap-2 ${reminderType === 'onenote' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    onClick={() => setReminderType('onenote')}
+                                    title="Save to OneNote"
+                                >
+                                    <StickyNote size={16} />
+                                    <span className="hidden sm:inline">OneNote</span>
                                 </button>
                             </div>
 
@@ -285,14 +332,28 @@ export function ReminderModal({ job, onClose }) {
                                 </div>
                             )}
 
+                            {reminderType === 'onenote' && (
+                                <div className="p-4 bg-purple-50 rounded-lg border border-purple-100 text-center">
+                                    <StickyNote className="mx-auto mb-2 text-purple-600" size={32} />
+                                    <p className="text-sm text-purple-800 font-medium">Copy for OneNote</p>
+                                    <p className="text-xs text-purple-600 mt-1">
+                                        This will copy the job details to your clipboard.
+                                        <br />
+                                        Simply switch to OneNote and paste <b>(Ctrl+V)</b> to create your formatted page.
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="pt-2">
                                 <button
                                     onClick={handleSubmit}
                                     disabled={submitting}
-                                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    className={`w-full py-2.5 rounded-xl font-medium shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-white
+                                        ${reminderType === 'onenote' ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'}
+                                    `}
                                 >
                                     {submitting && <Loader2 size={16} className="animate-spin" />}
-                                    {reminderType === 'calendar' ? 'Add to Calendar' : 'Send Email'}
+                                    {reminderType === 'calendar' ? 'Add to Calendar' : reminderType === 'onenote' ? 'Copy to Clipboard' : 'Send Email'}
                                 </button>
                             </div>
                         </div>
