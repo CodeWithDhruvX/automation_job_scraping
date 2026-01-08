@@ -139,29 +139,46 @@ class JobManager:
             
         initial_count = len(self.jobs)
         new_jobs = {}
-        
+
+        stats = {
+            "deleted": 0,
+            "kept_status": 0,
+            "kept_smart_tab": 0,
+            "total_before": initial_count,
+            "total_after": 0
+        }
+
         for url, job in self.jobs.items():
             should_keep = False
+            kept_reason = None
             
-            # Check Saved
-            if preserve_saved and job.get('my_status') == 'SAVED':
+            # Check Saved, Applied, Rejected
+            if preserve_saved and job.get('my_status') in ['SAVED', 'APPLIED', 'REJECTED']:
                 should_keep = True
+                kept_reason = 'status'
                 
             # Check Exception Search IDs
             if not should_keep and exception_search_ids:
                 job_search_id = job.get('search_id')
                 if job_search_id and job_search_id in exception_search_ids:
                     should_keep = True
+                    kept_reason = 'smart_tab'
             
             if should_keep:
                 new_jobs[url] = job
+                if kept_reason == 'status':
+                    stats['kept_status'] += 1
+                elif kept_reason == 'smart_tab':
+                    stats['kept_smart_tab'] += 1
                 
         self.jobs = new_jobs
+        stats['total_after'] = len(self.jobs)
+        stats['deleted'] = initial_count - len(self.jobs)
         
-        if len(self.jobs) < initial_count:
+        if stats['deleted'] > 0:
             self.save_data()
-            return initial_count - len(self.jobs) # Returns number of deleted jobs
-        return 0
+            
+        return stats
 
     def delete_jobs_by_search_id(self, search_id: str):
         """Deletes all jobs belonging to a specific search_id."""

@@ -25,7 +25,7 @@ class TaskRequest(BaseModel):
     account_id: str
     job_details: Dict[str, Any]
     due_date: str # ISO format
-    tasklist_id: str = '@default'
+    tasklist_id: Optional[str] = '@default'
     notes: Optional[str] = None
 
 @router.post("/calendar")
@@ -86,5 +86,19 @@ def create_task(req: TaskRequest):
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/tasks/{account_id}")
+def list_tasks(account_id: str, list_id: str = '@default'):
+    try:
+        return service.list_tasks(account_id, list_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/calendar/events/{account_id}")
+def list_events(account_id: str):
+    try:
+        return service.list_upcoming_events(account_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

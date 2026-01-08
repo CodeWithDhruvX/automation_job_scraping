@@ -8,7 +8,8 @@ import { AppliedJobsView } from './components/AppliedJobsView'
 import { SmartTabView } from './components/SmartTabView'
 import { SmartTabModal } from './components/SmartTabModal'
 import { RejectedJobsView } from './components/RejectedJobsView'
-import { LayoutDashboard, RefreshCw, Trash2, X, Download, ExternalLink, Settings, Upload, Sparkles } from 'lucide-react'
+import GoogleRemindersView from './components/GoogleRemindersView'
+import { LayoutDashboard, RefreshCw, Trash2, X, Download, ExternalLink, Settings, Upload, Sparkles, Calendar } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 // Configure Axios base URL
@@ -28,6 +29,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [showAppliedJobsView, setShowAppliedJobsView] = useState(false)
   const [showRejectedJobsView, setShowRejectedJobsView] = useState(false)
+  const [showGoogleRemindersView, setShowGoogleRemindersView] = useState(false)
 
   // Smart Tab State
   const [showSmartTabView, setShowSmartTabView] = useState(false)
@@ -102,6 +104,8 @@ function App() {
       setShowSmartTabView(true)
     } else if (window.location.hash === '#rejected-jobs') {
       setShowRejectedJobsView(true)
+    } else if (window.location.hash === '#google-reminders') {
+      setShowGoogleRemindersView(true)
     }
   }, [])
 
@@ -111,17 +115,26 @@ function App() {
       if (window.location.hash === '#applied-jobs') {
         setShowAppliedJobsView(true)
         setShowSmartTabView(false)
+        setShowGoogleRemindersView(false)
       } else if (window.location.hash === '#smart-tabs') {
         setShowSmartTabView(true)
         setShowAppliedJobsView(false)
+        setShowGoogleRemindersView(false)
       } else if (window.location.hash === '#rejected-jobs') {
         setShowRejectedJobsView(true)
         setShowAppliedJobsView(false)
         setShowSmartTabView(false)
+        setShowGoogleRemindersView(false)
+      } else if (window.location.hash === '#google-reminders') {
+        setShowGoogleRemindersView(true)
+        setShowAppliedJobsView(false)
+        setShowSmartTabView(false)
+        setShowRejectedJobsView(false)
       } else {
         setShowAppliedJobsView(false)
         setShowSmartTabView(false)
         setShowRejectedJobsView(false)
+        setShowGoogleRemindersView(false)
       }
     }
 
@@ -166,9 +179,12 @@ function App() {
         params.search_id = searchId
       }
       const res = await api.get('/jobs', { params })
-      const visibleJobs = res.data.filter(j => j.my_status !== 'HIDDEN')
+      const nonHiddenJobs = res.data.filter(j => j.my_status !== 'HIDDEN')
+      setAllJobs(nonHiddenJobs) // Store all non-hidden jobs for global counts (like Applied tab count)
+
+      // For dashboard/search views, hide Applied and Rejected jobs (they are in their own tabs)
+      const visibleJobs = nonHiddenJobs.filter(j => j.my_status !== 'APPLIED' && j.my_status !== 'REJECTED')
       setJobs(visibleJobs)
-      setAllJobs(visibleJobs) // Store all jobs for counts
     } catch (err) {
       console.error("Failed to fetch jobs", err)
     } finally {
@@ -327,9 +343,9 @@ function App() {
   const handleClearAllJobs = async () => {
     if (window.confirm('Are you sure you want to clear all jobs? This action cannot be undone.')) {
       try {
-        await api.post('/jobs/clear-dashboard', {
+        const response = await api.post('/jobs/clear-dashboard', {
           preserve_saved: true,
-          exception_search_ids: smartTabIds.map(t => t.id)
+          exception_search_ids: (smartTabIds || []).map(t => t?.id ? String(t.id) : null).filter(id => id)
         })
 
         // Refresh everything to reflect state
@@ -340,7 +356,8 @@ function App() {
         // but fetching is safer to ensure sync with backend logic.
         // For 'all' tab, we might still see saved jobs and smart tab jobs, which is correct.
 
-        alert('Dashboard jobs cleared successfully! Saved jobs and Smart Tabs are preserved.')
+        const stats = response.data
+        alert(`Dashboard cleared!\n\nDeleted: ${stats.deleted_count} jobs\nPreserved (Status): ${stats.kept_status} jobs\nPreserved (Smart Tabs): ${stats.kept_smart_tab} jobs\n\nTotal Remaining: ${stats.total_after}`)
       } catch (err) {
         alert('Failed to clear jobs: ' + err.message)
       }
@@ -622,6 +639,17 @@ function App() {
               Open Selected ({selectedJobUrls.length})
             </button>
           )}
+          <button
+            onClick={() => {
+              window.location.hash = 'google-reminders'
+              setShowGoogleRemindersView(true)
+            }}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors shadow-sm"
+          >
+            <Calendar size={16} />
+            Google Reminders
+          </button>
+
           <button
             onClick={() => {
               window.location.hash = 'applied-jobs'
@@ -907,6 +935,16 @@ function App() {
           allSearches={searches}
           savedSmartTabIds={smartTabIds.map(t => t.id)}
           onSave={handleSmartTabSave}
+        />
+      )}
+
+      {showGoogleRemindersView && (
+        <GoogleRemindersView
+          accountId='primary'
+          onClose={() => {
+            window.location.hash = '';
+            setShowGoogleRemindersView(false);
+          }}
         />
       )}
     </div >

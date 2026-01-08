@@ -254,6 +254,47 @@ class ReminderService:
 
 
 
+    def list_tasks(self, account_id: str, tasklist_id: str = '@default'):
+        account = auth_manager.get_account(account_id)
+        if not account or account['provider'] != 'google':
+             raise ValueError("Invalid account or not a Google account")
+             
+        token_data = account['token_data']
+        creds = self._get_google_creds(token_data)
+        service = build('tasks', 'v1', credentials=creds)
+        
+        results = service.tasks().list(tasklist=tasklist_id, showCompleted=True, showHidden=True).execute()
+        return results.get('items', [])
+
+    def list_upcoming_events(self, account_id: str, days: int = 7):
+        account = auth_manager.get_account(account_id)
+        if not account:
+            raise ValueError("Account not found")
+            
+        provider = account['provider']
+        token_data = account['token_data']
+        
+        if provider == 'google':
+            creds = self._get_google_creds(token_data)
+            service = build('calendar', 'v3', credentials=creds)
+            
+            now = datetime.datetime.utcnow().isoformat() + 'Z'
+            end_time = (datetime.datetime.utcnow() + datetime.timedelta(days=days)).isoformat() + 'Z'
+            
+            events_result = service.events().list(
+                calendarId='primary', 
+                timeMin=now,
+                timeMax=end_time,
+                maxResults=50, 
+                singleEvents=True,
+                orderBy='startTime'
+            ).execute()
+            
+            return events_result.get('items', [])
+        else:
+            # Placeholder for Outlook if needed later
+            return []
+
     def get_google_task_lists(self, account_id: str):
         account = auth_manager.get_account(account_id)
         if not account:

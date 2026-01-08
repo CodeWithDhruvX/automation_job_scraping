@@ -100,18 +100,25 @@ def clear_all_jobs():
 
 class ClearDashboardRequest(BaseModel):
     preserve_saved: bool = True
-    exception_search_ids: List[str] = []
+    exception_search_ids: Optional[List[str]] = None
 
 @app.post("/api/jobs/clear-dashboard")
 def clear_dashboard_jobs(payload: ClearDashboardRequest):
     """
     Clears "dashboard" jobs, preserving Saved jobs and specified Smart Tabs.
     """
-    deleted_count = job_manager.clear_jobs_safe(
+    stats = job_manager.clear_jobs_safe(
         preserve_saved=payload.preserve_saved,
         exception_search_ids=payload.exception_search_ids
     )
-    return {"message": f"Cleared {deleted_count} dashboard jobs", "deleted_count": deleted_count}
+    return {
+        "message": f"Cleared {stats['deleted']} dashboard jobs", 
+        "deleted_count": stats['deleted'],
+        "kept_status": stats['kept_status'],
+        "kept_smart_tab": stats['kept_smart_tab'],
+        "total_before": stats['total_before'],
+        "total_after": stats['total_after']
+    }
 
 @app.delete("/api/jobs/detail")
 def delete_single_job(url: str = Query(..., description="The URL of the job to delete")):
