@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { X, Layout, ChevronRight, Settings, ChevronLeft, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { X, Layout, ChevronRight, Settings, ChevronLeft, PanelLeftClose, PanelLeftOpen, Pencil } from 'lucide-react'
 import { JobTable } from './JobTable'
 
 const api = axios.create({
     baseURL: 'http://localhost:8000/api'
 })
 
-export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, onToggleSave, onSave }) {
+export function SmartTabView({ onClose, smartTabs, onManageTabs, savedJobs, onToggleSave, onSave, onRenameTab }) {
     const [searches, setSearches] = useState([])
     const [activeTabId, setActiveTabId] = useState(null)
     const [activeJobs, setActiveJobs] = useState([])
@@ -16,13 +16,17 @@ export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, on
     const [selectedSidebarIds, setSelectedSidebarIds] = useState([])
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(true)
 
+    // Renaming state
+    const [editingTabId, setEditingTabId] = useState(null)
+    const [tempName, setTempName] = useState('')
+
     // 1. Fetch search metadata for sidebar
     useEffect(() => {
         const fetchSearches = async () => {
             try {
                 const res = await api.get('/searches')
                 // Filter only the ones selected in "Smart Tabs"
-                const relevantSearches = res.data.filter(s => smartTabIds.includes(s.search_id))
+                const relevantSearches = res.data.filter(s => smartTabs.find(t => t.id === s.search_id))
                 setSearches(relevantSearches)
 
                 // Set first tab as active if none selected yet, or if current selection is invalid
@@ -35,7 +39,7 @@ export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, on
         }
 
         fetchSearches()
-    }, [smartTabIds]) // Re-fetch when the ID list changes
+    }, [smartTabs]) // Re-fetch when the list changes
 
     // 2. Fetch jobs when active tab changes
     useEffect(() => {
@@ -81,8 +85,9 @@ export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, on
 
     const handleRemoveSelectedTabs = () => {
         if (window.confirm(`Remove ${selectedSidebarIds.length} tab(s) from Smart View?`)) {
-            const newIds = smartTabIds.filter(id => !selectedSidebarIds.includes(id))
-            onSave(newIds)
+            // Filter out removing IDs from the object list
+            const newSmartTabs = smartTabs.filter(t => !selectedSidebarIds.includes(t.id))
+            onSave(newSmartTabs)
             setSelectedSidebarIds([])
             // Handle case where active tab is removed
             if (selectedSidebarIds.includes(activeTabId)) {
@@ -102,11 +107,7 @@ export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, on
 
                 // If it was in saved jobs, remove it there too (optional, but good for consistency)
                 if (savedJobs.some(j => j.job_url === job.job_url)) {
-                    onToggleSave(job) // This toggles, so if it's saved it will unsave. 
-                    // But safer might be to let parent handle it or just ignore if we want to keep it simple.
-                    // Actually, looking at App.jsx, it manually updates savedJobs.
-                    // Since we don't have setSavedJobs here, we might rely on onToggleSave if it checks existence, 
-                    // OR we just leave it be. The user sees it gone from the list.
+                    onToggleSave(job)
                 }
 
             } catch (err) {
@@ -114,6 +115,35 @@ export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, on
                 alert('Failed to delete job: ' + err.message)
             }
         }
+    }
+
+    // Helper to get display label
+    const getTabLabel = (search) => {
+        const tab = smartTabs.find(t => t.id === search.search_id)
+        return tab?.label || search.search_query
+    }
+
+    const startRenaming = (e, search) => {
+        e.stopPropagation()
+        setEditingTabId(search.search_id)
+        setTempName(getTabLabel(search))
+    }
+
+    const saveRename = () => {
+        if (editingTabId) {
+            // Save even if empty? Prefer falling back to default if empty or just trim
+            // But user might want to persist "empty" to mean default. 
+            // Let's say if empty, we revert to null (default)
+            const finalName = tempName.trim() || null
+            onRenameTab(editingTabId, finalName)
+        }
+        setEditingTabId(null)
+        setTempName('')
+    }
+
+    const cancelRename = () => {
+        setEditingTabId(null)
+        setTempName('')
     }
 
     return (
@@ -216,7 +246,7 @@ export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, on
                                     ${isSidebarExpanded ? 'w-full' : 'justify-center w-10 h-10'}
                                 `}
                                 onClick={() => setActiveTabId(search.search_id)}
-                                title={!isSidebarExpanded ? search.search_query : ''}
+                                title={!isSidebarExpanded ? getTabLabel(search) : ''}
                             >
                                 {isSidebarExpanded && (
                                     <input
@@ -232,27 +262,50 @@ export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, on
 
                                 {isSidebarExpanded ? (
                                     <div className="flex-1 text-left min-w-0">
-                                        <div className="truncate pr-2">
-                                            <div className={`truncate text-sm font-medium ${activeTabId === search.search_id ? 'text-fuchsia-700' : 'text-slate-700'}`}>
-                                                {search.search_query}
+                                        {editingTabId === search.search_id ? (
+                                            <input
+                                                type="text"
+                                                value={tempName}
+                                                onChange={(e) => setTempName(e.target.value)}
+                                                onBlur={saveRename}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') saveRename()
+                                                    if (e.key === 'Escape') cancelRename()
+                                                }}
+                                                autoFocus
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="w-full px-2 py-1 text-sm bg-white border border-fuchsia-300 rounded focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20"
+                                            />
+                                        ) : (
+                                            <div className="truncate pr-2 group/label">
+                                                <div className={`truncate text-sm font-medium ${activeTabId === search.search_id ? 'text-fuchsia-700' : 'text-slate-700'}`}>
+                                                    {getTabLabel(search)}
+                                                </div>
+                                                <div className="text-xs opacity-70 truncate text-slate-500">{search.search_location}</div>
                                             </div>
-                                            <div className="text-xs opacity-70 truncate text-slate-500">{search.search_location}</div>
-                                        </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <span className={`text-lg font-bold select-none ${activeTabId === search.search_id ? 'text-fuchsia-700' : 'text-slate-500'}`}>
-                                        {search.search_query.charAt(0).toUpperCase()}
+                                        {getTabLabel(search).charAt(0).toUpperCase()}
                                     </span>
                                 )}
 
-                                {isSidebarExpanded && (
+                                {isSidebarExpanded && !editingTabId && (
                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={(e) => startRenaming(e, search)}
+                                            className="p-1.5 rounded hover:bg-slate-200 text-slate-400 hover:text-fuchsia-600 transition-colors"
+                                            title="Rename Tab"
+                                        >
+                                            <Pencil size={14} />
+                                        </button>
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation()
-                                                if (window.confirm(`Remove "${search.search_query}" from Smart View?`)) {
-                                                    const newIds = smartTabIds.filter(id => id !== search.search_id)
-                                                    onSave(newIds)
+                                                if (window.confirm(`Remove "${getTabLabel(search)}" from Smart View?`)) {
+                                                    const newSmartTabs = smartTabs.filter(t => t.id !== search.search_id)
+                                                    onSave(newSmartTabs)
                                                     // Handle active
                                                     if (activeTabId === search.search_id) {
                                                         setActiveTabId(null)
@@ -286,8 +339,8 @@ export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, on
                             <div className="p-6 pb-2">
                                 <div className="flex items-center justify-between mb-4">
                                     <div>
-                                        <h2 className="text-2xl font-bold text-slate-800">
-                                            {activeSearchMeta?.search_query || 'Loading...'}
+                                        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                                            {activeSearchMeta && getTabLabel(activeSearchMeta)}
                                         </h2>
                                         <div className="flex items-center gap-2 text-sm text-slate-500">
                                             <span>{activeSearchMeta?.search_location}</span>
@@ -311,7 +364,6 @@ export function SmartTabView({ onClose, smartTabIds, onManageTabs, savedJobs, on
                                             onToggleSave={onToggleSave}
                                             selectedJobUrls={selectedJobUrls}
                                             onSelectionChange={setSelectedJobUrls}
-                                            // Pass any update handlers you need, or dummy ones if read-only logic differs
                                             onJobUpdate={(updatedJob) => {
                                                 // Optimistic update for local list
                                                 setActiveJobs(prev => prev.map(j => j.job_url === updatedJob.job_url ? updatedJob : j))

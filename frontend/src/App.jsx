@@ -32,7 +32,20 @@ function App() {
   const [showSmartTabModal, setShowSmartTabModal] = useState(false)
   const [smartTabIds, setSmartTabIds] = useState(() => {
     const saved = localStorage.getItem('smartTabIds')
-    return saved ? JSON.parse(saved) : []
+    if (!saved) return []
+    try {
+      const parsed = JSON.parse(saved)
+      // Migration: Convert string[] to {id, label}[]
+      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
+        const migrated = parsed.map(id => ({ id, label: null }))
+        localStorage.setItem('smartTabIds', JSON.stringify(migrated))
+        return migrated
+      }
+      return parsed
+    } catch (e) {
+      console.error("Failed to parse smartTabIds", e)
+      return []
+    }
   })
 
   // Filter state
@@ -264,10 +277,35 @@ function App() {
         response = await api.get('/export', { params, responseType: 'blob' })
       }
 
+      // Determine filename based on active tab
+      let filenamePrefix = 'jobs_export'
+      if (searchId === 'all') {
+        filenamePrefix = 'all_jobs'
+      } else if (searchId === 'saved') {
+        filenamePrefix = 'saved_jobs'
+      } else if (searchId === 'applied') {
+        filenamePrefix = 'applied_jobs'
+      } else {
+        // Try to find custom label first, then search query
+        const smartTab = smartTabIds.find(t => t.id === searchId)
+        if (smartTab?.label) {
+          filenamePrefix = smartTab.label
+        } else {
+          const search = searches.find(s => s.search_id === searchId)
+          if (search) {
+            filenamePrefix = search.search_query
+          }
+        }
+      }
+
+      // Sanitize filename
+      const safeFilename = filenamePrefix.replace(/[^a-z0-9]/gi, '_').toLowerCase()
+      const dateStr = new Date().toISOString().slice(0, 10)
+
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', `jobs_export_${new Date().toISOString().slice(0, 10)}.xlsx`)
+      link.setAttribute('download', `${safeFilename}_${dateStr}.xlsx`)
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -281,7 +319,7 @@ function App() {
       try {
         await api.post('/jobs/clear-dashboard', {
           preserve_saved: true,
-          exception_search_ids: smartTabIds
+          exception_search_ids: smartTabIds.map(t => t.id)
         })
 
         // Refresh everything to reflect state
@@ -512,9 +550,26 @@ function App() {
     reader.readAsBinaryString(file)
   }
 
-  const handleSmartTabSave = (ids) => {
-    setSmartTabIds(ids)
-    localStorage.setItem('smartTabIds', JSON.stringify(ids))
+  const handleSmartTabSave = (selectedIds) => {
+    setSmartTabIds(prev => {
+      // Create new list preserving objects for existing IDs and adding new objects for new IDs
+      const newSmartTabs = selectedIds.map(id => {
+        const existing = prev.find(t => t.id === id)
+        return existing || { id, label: null }
+      })
+      localStorage.setItem('smartTabIds', JSON.stringify(newSmartTabs))
+      return newSmartTabs
+    })
+  }
+
+  const handleRenameSmartTab = (id, newName) => {
+    setSmartTabIds(prev => {
+      const updated = prev.map(tab =>
+        tab.id === id ? { ...tab, label: newName } : tab
+      )
+      localStorage.setItem('smartTabIds', JSON.stringify(updated))
+      return updated
+    })
   }
 
   return (
@@ -661,31 +716,35 @@ function App() {
                 </button>
               )}
 
-              {searches.map((search) => (
-                <button
-                  key={search.search_id}
-                  onClick={() => handleTabClick(search.search_id)}
-                  className={`
+              {searches.map((search) => {
+                const smartTab = smartTabIds.find(t => t.id === search.search_id)
+                const displayName = smartTab?.label || search.search_query
+                return (
+                  <button
+                    key={search.search_id}
+                    onClick={() => handleTabClick(search.search_id)}
+                    className={`
                     px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 flex flex-col items-start relative group pr-8
                     ${activeSearchId === search.search_id
-                      ? 'border-blue-600 text-blue-600 bg-white'
-                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                    }
+                        ? 'border-blue-600 text-blue-600 bg-white'
+                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                      }
                   `}
-                >
-                  <span className="whitespace-nowrap">{search.search_query}</span>
-                  <span className="text-xs opacity-70 whitespace-nowrap">
-                    {search.search_location} • {search.job_count} jobs
-                  </span>
-
-                  <div
-                    onClick={(e) => handleDeleteSearch(e, search.search_id)}
-                    className="absolute right-1 top-2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                   >
-                    <X size={14} />
-                  </div>
-                </button>
-              ))}
+                    <span className="whitespace-nowrap max-w-[150px] truncate" title={displayName}>{displayName}</span>
+                    <span className="text-xs opacity-70 whitespace-nowrap">
+                      {search.search_location} • {search.job_count} jobs
+                    </span>
+
+                    <div
+                      onClick={(e) => handleDeleteSearch(e, search.search_id)}
+                      className="absolute right-1 top-2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <X size={14} />
+                    </div>
+                  </button>
+                )
+              })}
             </nav>
           </div>
         )
@@ -804,20 +863,21 @@ function App() {
             window.location.hash = ''
             setShowSmartTabView(false)
           }}
-          smartTabIds={smartTabIds}
+          smartTabs={smartTabIds}
           onManageTabs={() => setShowSmartTabModal(true)}
           savedJobs={savedJobs}
           onToggleSave={handleToggleSaveJob}
           onSave={handleSmartTabSave}
+          onRenameTab={handleRenameSmartTab}
         />
       )}
 
       {showSmartTabModal && (
         <SmartTabModal
-          isOpen={true}
+          isOpen={showSmartTabModal}
           onClose={() => setShowSmartTabModal(false)}
           allSearches={searches}
-          savedSmartTabIds={smartTabIds}
+          savedSmartTabIds={smartTabIds.map(t => t.id)}
           onSave={handleSmartTabSave}
         />
       )}
