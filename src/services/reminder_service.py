@@ -1,5 +1,6 @@
 import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Any
+import uuid
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request as GoogleRequest
 from googleapiclient.discovery import build
@@ -67,7 +68,18 @@ class ReminderService:
             pass
         return token_data
 
-    def create_calendar_event(self, account_id: str, job_details: Dict, time_iso: str):
+    def create_calendar_event(
+        self, 
+        account_id: str, 
+        job_details: Dict, 
+        time_iso: str,
+        duration_minutes: int = 30,
+        attendees: Optional[List[str]] = None,
+        reminders: Optional[Dict] = None,
+        color_id: Optional[str] = None,
+        transparency: str = 'opaque',
+        add_google_meet: bool = False
+    ):
         account = auth_manager.get_account(account_id)
         if not account:
             raise ValueError("Account not found")
@@ -77,14 +89,16 @@ class ReminderService:
         
         title = f"Follow up: {job_details.get('title', 'Job Application')}"
         description = f"Follow up on application for {job_details.get('title')} at {job_details.get('company', 'Unknown Company')}.\nLink: {job_details.get('job_url_direct') or job_details.get('job_url')}"
-        
+        if job_details.get('description'):
+             description += f"\n\nDetails:\n{job_details.get('description')[:500]}..."
+
         # Parse time
         try:
             start_dt = datetime.datetime.fromisoformat(time_iso.replace('Z', '+00:00'))
         except:
             start_dt = datetime.datetime.now() + datetime.timedelta(hours=24) # Fallback
             
-        end_dt = start_dt + datetime.timedelta(minutes=30)
+        end_dt = start_dt + datetime.timedelta(minutes=duration_minutes)
         
         if provider == 'google':
             creds = self._get_google_creds(token_data)
@@ -95,14 +109,37 @@ class ReminderService:
                 'description': description,
                 'start': {'dateTime': start_dt.isoformat(), 'timeZone': 'UTC'},
                 'end': {'dateTime': end_dt.isoformat(), 'timeZone': 'UTC'},
+                'transparency': transparency, # 'opaque' (Busy) or 'transparent' (Free)
             }
+
+            if attendees:
+                event['attendees'] = [{'email': email} for email in attendees]
             
-            created_event = service.events().insert(calendarId='primary', body=event).execute()
-            return {"status": "success", "link": created_event.get('htmlLink')}
+            if reminders:
+                event['reminders'] = reminders
+            
+            if color_id and color_id != 'default':
+                event['colorId'] = color_id
+
+            if add_google_meet:
+                event['conferenceData'] = {
+                    'createRequest': {
+                        'requestId': f"{uuid.uuid4()}",
+                        'conferenceSolutionKey': {'type': 'hangoutsMeet'}
+                    }
+                }
+            
+            # conferenceDataVersion=1 is required to create a meeting
+            created_event = service.events().insert(
+                calendarId='primary', 
+                body=event, 
+                conferenceDataVersion=1 if add_google_meet else 0
+            ).execute()
+            
+            return {"status": "success", "link": created_event.get('htmlLink'), "meetLink": created_event.get('hangoutLink')}
             
         elif provider == 'outlook':
-            # Refresh if needed (basic logic)
-            # token_data = self._refresh_outlook_token(account_id, token_data)
+            # Basic Outlook support (Customizations partly supported)
             
             access_token = token_data.get('access_token')
             url = "https://graph.microsoft.com/v1.0/me/events"
@@ -124,9 +161,25 @@ class ReminderService:
                 "end": {
                     "dateTime": end_dt.isoformat(),
                     "timeZone": "UTC"
-                }
+                },
+                "showAs": "free" if transparency == 'transparent' else "busy"
             }
             
+            if attendees:
+                payload["attendees"] = [
+                     {"emailAddress": {"address": email}, "type": "required"} for email in attendees
+                ]
+
+            # Reminders in Outlook are just "reminderMinutesBeforeStart" (int)
+            # We try to parse our overrides if possible, or just default
+            if reminders and reminders.get('overrides'):
+                # Take the first override's minutes
+                mins = reminders['overrides'][0].get('minutes', 15)
+                payload["isReminderOn"] = True
+                payload["reminderMinutesBeforeStart"] = mins
+            elif reminders and reminders.get('useDefault') is False:
+                 payload["isReminderOn"] = False 
+
             r = requests.post(url, headers=headers, json=payload)
             if r.status_code not in [200, 201]:
                 raise Exception(f"Outlook Error: {r.text}")

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 from src.services.reminder_service import ReminderService
 
 router = APIRouter(prefix="/api/reminders", tags=["reminders"])
@@ -10,6 +10,12 @@ class CalendarRequest(BaseModel):
     account_id: str
     job_details: Dict[str, Any]
     time: str # ISO format
+    duration_minutes: Optional[int] = 30
+    attendees: Optional[List[str]] = None
+    reminders: Optional[Dict[str, Any]] = None
+    color_id: Optional[str] = None
+    transparency: Optional[str] = 'opaque'
+    add_google_meet: bool = False
 
 class EmailRequest(BaseModel):
     account_id: str
@@ -24,7 +30,17 @@ class TaskRequest(BaseModel):
 def create_calendar_event(req: CalendarRequest):
     """Creates a calendar event for the specified account."""
     try:
-        result = service.create_calendar_event(req.account_id, req.job_details, req.time)
+        result = service.create_calendar_event(
+            account_id=req.account_id, 
+            job_details=req.job_details, 
+            time_iso=req.time,
+            duration_minutes=req.duration_minutes,
+            attendees=req.attendees,
+            reminders=req.reminders,
+            color_id=req.color_id,
+            transparency=req.transparency,
+            add_google_meet=req.add_google_meet
+        )
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

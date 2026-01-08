@@ -25,6 +25,10 @@ export function ReminderModal({ job, onClose }) {
     const [attendees, setAttendees] = useState('')
     const [ccAttendees, setCcAttendees] = useState('')
     const [reminderMinutes, setReminderMinutes] = useState('15')
+    const [duration, setDuration] = useState(30)
+    const [eventColor, setEventColor] = useState('default')
+    const [transparency, setTransparency] = useState('opaque')
+    const [addGoogleMeet, setAddGoogleMeet] = useState(false)
 
     // Set default datetime to tomorrow 9am
     useEffect(() => {
@@ -172,7 +176,20 @@ export function ReminderModal({ job, onClose }) {
                 await api.post('/reminders/calendar', {
                     account_id: selectedAccount,
                     job_details: { ...job, description }, // Pass potentially fetched description
-                    time: dateTime.toISOString()
+                    time: dateTime.toISOString(),
+                    duration_minutes: duration,
+                    attendees: attendees.split(',').map(e => e.trim()).filter(e => e),
+                    reminders: parseInt(reminderMinutes) >= 0 ? {
+                        useDefault: false,
+                        overrides: [{ method: 'popup', minutes: parseInt(reminderMinutes) }]
+                    } : null, // If -1, could mean useDefault: true or none? Let's say none for now if user explicitly picked "No Reminder" which isn't an option yet, wait I added it.
+                    // If -1 (No reminder) -> useDefault: false, overrides: []
+                    // If not -1 -> specific override
+                    // Actually let's refine:
+                    reminder_minutes: parseInt(reminderMinutes), // Helper for backend simplifiction or pass full object
+                    color_id: eventColor !== 'default' ? eventColor : null,
+                    transparency: transparency,
+                    add_google_meet: addGoogleMeet
                 })
             } else if (reminderType === 'tasks') {
                 await api.post('/reminders/tasks', {
@@ -305,9 +322,84 @@ export function ReminderModal({ job, onClose }) {
                                         />
                                     </div>
 
-                                    {selectedAccount === 'outlook-web' && (
+                                    {/* Common Options for Calendar (Google + Outlook Web) */}
+                                    {reminderType === 'calendar' && (
                                         <>
                                             <div className="grid grid-cols-2 gap-3">
+                                                {/* Duration */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Duration</label>
+                                                    <select
+                                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        value={duration}
+                                                        onChange={e => setDuration(parseInt(e.target.value))}
+                                                    >
+                                                        <option value="15">15 minutes</option>
+                                                        <option value="30">30 minutes</option>
+                                                        <option value="45">45 minutes</option>
+                                                        <option value="60">1 hour</option>
+                                                        <option value="90">1.5 hours</option>
+                                                        <option value="120">2 hours</option>
+                                                    </select>
+                                                </div>
+
+                                                {/* Reminder Alert */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Reminder</label>
+                                                    <select
+                                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        value={reminderMinutes}
+                                                        onChange={e => setReminderMinutes(e.target.value)}
+                                                    >
+                                                        <option value="-1">No Reminder</option>
+                                                        <option value="0">At time of event</option>
+                                                        <option value="5">5 mins before</option>
+                                                        <option value="10">10 mins before</option>
+                                                        <option value="15">15 mins before</option>
+                                                        <option value="30">30 mins before</option>
+                                                        <option value="60">1 hour before</option>
+                                                        <option value="1440">1 day before</option>
+                                                    </select>
+                                                </div>
+
+                                                {/* Color Picker (Google Only usually, but we can try to map for Outlook or just hidden) */}
+                                                {selectedAccount !== 'outlook-web' && (
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-slate-700 mb-1">Color</label>
+                                                        <select
+                                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            value={eventColor}
+                                                            onChange={e => setEventColor(e.target.value)}
+                                                        >
+                                                            <option value="default">Default</option>
+                                                            <option value="1">Lavender</option>
+                                                            <option value="2">Sage</option>
+                                                            <option value="3">Grape</option>
+                                                            <option value="4">Flamingo</option>
+                                                            <option value="5">Banana</option>
+                                                            <option value="6">Tangerine</option>
+                                                            <option value="7">Peacock</option>
+                                                            <option value="8">Graphite</option>
+                                                            <option value="9">Blueberry</option>
+                                                            <option value="10">Basil</option>
+                                                            <option value="11">Tomato</option>
+                                                        </select>
+                                                    </div>
+                                                )}
+
+                                                {/* Busy/Free Status */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Show as</label>
+                                                    <select
+                                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        value={transparency}
+                                                        onChange={e => setTransparency(e.target.value)}
+                                                    >
+                                                        <option value="opaque">Busy</option>
+                                                        <option value="transparent">Free</option>
+                                                    </select>
+                                                </div>
+
                                                 <div className="col-span-2">
                                                     <label className="block text-sm font-medium text-slate-700 mb-1">Attendees (To)</label>
                                                     <input
@@ -318,31 +410,36 @@ export function ReminderModal({ job, onClose }) {
                                                         onChange={e => setAttendees(e.target.value)}
                                                     />
                                                 </div>
-                                                <div className="col-span-2">
-                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Optional (Cc)</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="manager@example.com"
-                                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                        value={ccAttendees}
-                                                        onChange={e => setCcAttendees(e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="col-span-2">
-                                                    <label className="block text-sm font-medium text-slate-700 mb-1">Reminder Alert</label>
-                                                    <select
-                                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                        value={reminderMinutes}
-                                                        onChange={e => setReminderMinutes(e.target.value)}
-                                                    >
-                                                        <option value="0">At time of event</option>
-                                                        <option value="5">5 minutes before</option>
-                                                        <option value="15">15 minutes before</option>
-                                                        <option value="30">30 minutes before</option>
-                                                        <option value="60">1 hour before</option>
-                                                        <option value="1440">1 day before</option>
-                                                    </select>
-                                                </div>
+
+                                                {selectedAccount === 'outlook-web' && (
+                                                    <div className="col-span-2">
+                                                        <label className="block text-sm font-medium text-slate-700 mb-1">Optional (Cc)</label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="manager@example.com"
+                                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            value={ccAttendees}
+                                                            onChange={e => setCcAttendees(e.target.value)}
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                {/* Google Meet Toggle */}
+                                                {selectedAccount !== 'outlook-web' && (
+                                                    <div className="col-span-2 flex items-center gap-2 mt-1">
+                                                        <input
+                                                            type="checkbox"
+                                                            id="googleMeet"
+                                                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                                            checked={addGoogleMeet}
+                                                            onChange={e => setAddGoogleMeet(e.target.checked)}
+                                                        />
+                                                        <label htmlFor="googleMeet" className="text-sm text-slate-700 font-medium cursor-pointer flex items-center gap-1">
+                                                            Add Google Meet Conference
+                                                            <span className="text-xs text-slate-400 font-normal">(Video Link)</span>
+                                                        </label>
+                                                    </div>
+                                                )}
                                             </div>
                                         </>
                                     )}
