@@ -30,6 +30,12 @@ export function ReminderModal({ job, onClose }) {
     const [transparency, setTransparency] = useState('opaque')
     const [addGoogleMeet, setAddGoogleMeet] = useState(false)
 
+    // Google Tasks Enhancements
+    const [taskLists, setTaskLists] = useState([])
+    const [selectedTaskList, setSelectedTaskList] = useState('@default')
+    const [customNotes, setCustomNotes] = useState('')
+    const [isFetchingLists, setIsFetchingLists] = useState(false)
+
     // Set default datetime to tomorrow 9am
     useEffect(() => {
         const d = new Date()
@@ -55,6 +61,35 @@ export function ReminderModal({ job, onClose }) {
                 .finally(() => setFetchingDesc(false))
         }
     }, [job])
+
+    // Pre-fill Custom Notes when description is available
+    useEffect(() => {
+        const descText = description || ''
+        const truncatedDesc = descText.length > 500 ? descText.substring(0, 500) + '...' : descText
+        const defaultNotes = `Company: ${job.company}\nLocation: ${job.location || 'Unknown'}\n\nLink: ${job.job_url}\n\nDescription:\n${truncatedDesc}`
+        setCustomNotes(defaultNotes)
+    }, [job, description])
+
+    // Fetch Task Lists when Reminder Type is 'tasks'
+    useEffect(() => {
+        if (reminderType === 'tasks' && selectedAccount && selectedAccount !== 'outlook-web') {
+            const fetchLists = async () => {
+                setIsFetchingLists(true)
+                try {
+                    const res = await api.get(`/reminders/google/tasklists?account_id=${selectedAccount}`)
+                    setTaskLists(res.data)
+                    if (res.data.length > 0) {
+                        setSelectedTaskList(res.data[0].id)
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch task lists", err)
+                } finally {
+                    setIsFetchingLists(false)
+                }
+            }
+            fetchLists()
+        }
+    }, [reminderType, selectedAccount])
 
     const fetchAccounts = async () => {
         try {
@@ -182,11 +217,7 @@ export function ReminderModal({ job, onClose }) {
                     reminders: parseInt(reminderMinutes) >= 0 ? {
                         useDefault: false,
                         overrides: [{ method: 'popup', minutes: parseInt(reminderMinutes) }]
-                    } : null, // If -1, could mean useDefault: true or none? Let's say none for now if user explicitly picked "No Reminder" which isn't an option yet, wait I added it.
-                    // If -1 (No reminder) -> useDefault: false, overrides: []
-                    // If not -1 -> specific override
-                    // Actually let's refine:
-                    reminder_minutes: parseInt(reminderMinutes), // Helper for backend simplifiction or pass full object
+                    } : null,
                     color_id: eventColor !== 'default' ? eventColor : null,
                     transparency: transparency,
                     add_google_meet: addGoogleMeet
@@ -195,7 +226,9 @@ export function ReminderModal({ job, onClose }) {
                 await api.post('/reminders/tasks', {
                     account_id: selectedAccount,
                     job_details: { ...job, description },
-                    due_date: dateTime.toISOString()
+                    due_date: dateTime.toISOString(),
+                    tasklist_id: selectedTaskList,
+                    notes: customNotes
                 })
             } else {
                 await api.post('/reminders/email', {
@@ -455,6 +488,41 @@ export function ReminderModal({ job, onClose }) {
                                         <br />
                                         Simply switch to OneNote and paste <b>(Ctrl+V)</b> to create your formatted page.
                                     </p>
+                                </div>
+                            )}
+
+                            {/* Google Tasks Specific Fields: Task List & Notes */}
+                            {reminderType === 'tasks' && selectedAccount !== 'outlook-web' && (
+                                <div className="space-y-3 pt-2 border-t border-slate-100">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Task List</label>
+                                        <select
+                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+                                            value={selectedTaskList}
+                                            onChange={e => setSelectedTaskList(e.target.value)}
+                                            disabled={isFetchingLists}
+                                        >
+                                            {isFetchingLists ? (
+                                                <option>Loading lists...</option>
+                                            ) : taskLists.length > 0 ? (
+                                                taskLists.map(list => (
+                                                    <option key={list.id} value={list.id}>{list.title}</option>
+                                                ))
+                                            ) : (
+                                                <option value="@default">Default List</option>
+                                            )}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+                                        <textarea
+                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
+                                            rows={4}
+                                            value={customNotes}
+                                            onChange={e => setCustomNotes(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
                             )}
 

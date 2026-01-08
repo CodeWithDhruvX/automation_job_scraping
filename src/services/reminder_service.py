@@ -253,7 +253,25 @@ class ReminderService:
         raise ValueError("Unknown provider")
 
 
-    def create_google_task(self, account_id: str, job_details: Dict, due_date_iso: Optional[str] = None):
+
+    def get_google_task_lists(self, account_id: str):
+        account = auth_manager.get_account(account_id)
+        if not account:
+            raise ValueError("Account not found")
+        
+        provider = account['provider']
+        if provider != 'google':
+            raise ValueError("Task lists only supported for Google accounts")
+            
+        token_data = account['token_data']
+        creds = self._get_google_creds(token_data)
+        service = build('tasks', 'v1', credentials=creds)
+        
+        results = service.tasklists().list().execute()
+        items = results.get('items', [])
+        return items
+
+    def create_google_task(self, account_id: str, job_details: Dict, due_date_iso: Optional[str] = None, tasklist_id: str = '@default', notes: Optional[str] = None):
         account = auth_manager.get_account(account_id)
         if not account:
             raise ValueError("Account not found")
@@ -267,7 +285,8 @@ class ReminderService:
         service = build('tasks', 'v1', credentials=creds)
         
         title = f"Apply: {job_details.get('title', 'Job Application')}"
-        notes = f"Company: {job_details.get('company')}\nLocation: {job_details.get('location', 'Unknown')}\n\nLink: {job_details.get('job_url')}\n\nDescription:\n{job_details.get('description', '')[:500]}..."
+        if not notes:
+            notes = f"Company: {job_details.get('company')}\nLocation: {job_details.get('location', 'Unknown')}\n\nLink: {job_details.get('job_url')}\n\nDescription:\n{job_details.get('description', '')[:500]}..."
 
         task_body = {
             'title': title,
@@ -282,5 +301,5 @@ class ReminderService:
              # But complete ISO usually works. 
              task_body['due'] = due_date_iso
 
-        result = service.tasks().insert(tasklist='@default', body=task_body).execute()
+        result = service.tasks().insert(tasklist=tasklist_id, body=task_body).execute()
         return {"status": "success", "id": result.get('id'), "link": result.get('selfLink')}

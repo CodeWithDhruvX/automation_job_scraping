@@ -25,6 +25,8 @@ class TaskRequest(BaseModel):
     account_id: str
     job_details: Dict[str, Any]
     due_date: str # ISO format
+    tasklist_id: str = '@default'
+    notes: Optional[str] = None
 
 @router.post("/calendar")
 def create_calendar_event(req: CalendarRequest):
@@ -59,11 +61,28 @@ def send_email_reminder(req: EmailRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/google/tasklists")
+def get_task_lists(account_id: str):
+    """Fetches Google Task lists for the account."""
+    try:
+        result = service.get_google_task_lists(account_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/tasks")
 def create_task(req: TaskRequest):
     """Creates a Google Task."""
     try:
-        result = service.create_google_task(req.account_id, req.job_details, req.due_date)
+        result = service.create_google_task(
+            req.account_id, 
+            req.job_details, 
+            req.due_date,
+            tasklist_id=req.tasklist_id,
+            notes=req.notes
+        )
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
