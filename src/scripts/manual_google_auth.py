@@ -13,6 +13,7 @@ GOOGLE_SCOPES = [
     'https://www.googleapis.com/auth/calendar.events', 
     'https://www.googleapis.com/auth/gmail.compose',
     'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/tasks',
     'openid'
 ]
 

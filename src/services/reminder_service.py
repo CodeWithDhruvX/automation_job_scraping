@@ -199,3 +199,35 @@ class ReminderService:
 
         raise ValueError("Unknown provider")
 
+
+    def create_google_task(self, account_id: str, job_details: Dict, due_date_iso: Optional[str] = None):
+        account = auth_manager.get_account(account_id)
+        if not account:
+            raise ValueError("Account not found")
+        
+        provider = account['provider']
+        if provider != 'google':
+             raise ValueError("Tasks only supported for Google accounts")
+             
+        token_data = account['token_data']
+        creds = self._get_google_creds(token_data)
+        service = build('tasks', 'v1', credentials=creds)
+        
+        title = f"Apply: {job_details.get('title', 'Job Application')}"
+        notes = f"Company: {job_details.get('company')}\nLocation: {job_details.get('location', 'Unknown')}\n\nLink: {job_details.get('job_url')}\n\nDescription:\n{job_details.get('description', '')[:500]}..."
+
+        task_body = {
+            'title': title,
+            'notes': notes,
+            'status': 'needsAction'
+        }
+        
+        if due_date_iso:
+             # Google Tasks API expects RFC 3339 timestamp string for 'due'
+             # Note: Tasks 'due' is date-only in some contexts, but API accepts ISO string.
+             # Ideally it should be T00:00:00Z format for purely date-based, strictly speaking.
+             # But complete ISO usually works. 
+             task_body['due'] = due_date_iso
+
+        result = service.tasks().insert(tasklist='@default', body=task_body).execute()
+        return {"status": "success", "id": result.get('id'), "link": result.get('selfLink')}

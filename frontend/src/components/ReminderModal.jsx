@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { X, Calendar, Mail, Loader2, CheckCircle, AlertCircle, StickyNote } from 'lucide-react'
+import { X, Calendar, Mail, Loader2, CheckCircle, AlertCircle, StickyNote, CheckSquare } from 'lucide-react'
 import Flatpickr from "react-flatpickr";
 import "flatpickr/dist/themes/airbnb.css";
 
@@ -81,7 +81,8 @@ export function ReminderModal({ job, onClose }) {
 
         try {
             // Handle Static Outlook Web or OneNote
-            if (reminderType === 'onenote' || selectedAccount === 'outlook-web') {
+            // NOTE: "Tasks" is not supported for outlook-web, so we force it to skip this block if type is tasks
+            if (reminderType === 'onenote' || (selectedAccount === 'outlook-web' && reminderType !== 'tasks')) {
                 if (reminderType === 'calendar') {
                     const start = dateTime ? new Date(dateTime) : new Date()
                     const end = new Date(start.getTime() + 30 * 60000) // 30 mins
@@ -172,6 +173,12 @@ export function ReminderModal({ job, onClose }) {
                     account_id: selectedAccount,
                     job_details: { ...job, description }, // Pass potentially fetched description
                     time: dateTime.toISOString()
+                })
+            } else if (reminderType === 'tasks') {
+                await api.post('/reminders/tasks', {
+                    account_id: selectedAccount,
+                    job_details: { ...job, description },
+                    due_date: dateTime.toISOString()
                 })
             } else {
                 await api.post('/reminders/email', {
@@ -271,12 +278,22 @@ export function ReminderModal({ job, onClose }) {
                                     <StickyNote size={16} />
                                     <span className="hidden sm:inline">OneNote</span>
                                 </button>
+                                <button
+                                    className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all flex justify-center items-center gap-2 ${reminderType === 'tasks' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    onClick={() => setReminderType('tasks')}
+                                    title="Add to Google Tasks"
+                                >
+                                    <CheckSquare size={16} />
+                                    <span className="hidden sm:inline">Tasks</span>
+                                </button>
                             </div>
 
-                            {reminderType === 'calendar' && (
+                            {(reminderType === 'calendar' || reminderType === 'tasks') && (
                                 <div className="space-y-3">
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">When?</label>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                                            {reminderType === 'tasks' ? 'Due Date' : 'When?'}
+                                        </label>
                                         <Flatpickr
                                             data-enable-time
                                             value={dateTime}
@@ -353,7 +370,7 @@ export function ReminderModal({ job, onClose }) {
                                     `}
                                 >
                                     {submitting && <Loader2 size={16} className="animate-spin" />}
-                                    {reminderType === 'calendar' ? 'Add to Calendar' : reminderType === 'onenote' ? 'Copy to Clipboard' : 'Send Email'}
+                                    {reminderType === 'calendar' ? 'Add to Calendar' : reminderType === 'onenote' ? 'Copy to Clipboard' : reminderType === 'tasks' ? 'Add Task' : 'Send Email'}
                                 </button>
                             </div>
                         </div>

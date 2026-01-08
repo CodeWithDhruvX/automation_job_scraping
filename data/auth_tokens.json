@@ -5,8 +5,8 @@
       "provider": "google",
       "email": "dhruvshahlinkedin@gmail.com",
       "token_data": {
-        "token": "ya29.a0Aa7pCA86obgdFuiBidwpfjIiZ2WzoPm-dPxhremF9mAOf3GyNiKtJpPqHo1Yt9JB5QzZscE6VwUkl5SExtI62jzYwlnIkrwV4DW3f3ijhUpaLjsj-7JpdjA59-6D0UZiXMLxAOXLD3ueW24-z0qDoeY23o93eNz3tsLIHSEyA8y7DFlMal_xrj8IuSVZVClujGJdMh0aCgYKAfISARASFQHGX2Mie5rYIkRwVXJ46wHIlngTIg0206",
-        "refresh_token": "1//0g0CPJ-Pa29HGCgYIARAAGBASNwF-L9Ir5s5LcCPdp-5cTDsaujrauzRMh9uvEWeF9cFCcvbNsVSSzkhhaG2eH426RvxSEVUw3Sw",
+        "token": "ya29.a0Aa7pCA-xAuBlsmDB2r82V8ovhMM5i5YHKIkbmP2ye4kztpdNBjrgZuqLAuj4rlDnGKcxIwkim4x6Noj6zd5sQFSBJB4cZKcdZCAry86-y9nT5aLhAYnXiDh0wav2DL5FNp3XsMm0iuO817xbKCnqer5stP7sLdi3-E3FfNxoWhJ7gvRdrhrEzVThUmtmKVURjX2uM3EaCgYKAYMSARASFQHGX2MiXZP0_CnpDCbimGfXIh6AhQ0206",
+        "refresh_token": "1//0gkbtpXFA2UvhCgYIARAAGBASNwF-L9IrABk0SmlM0IEmeTJVeeEdAMZEXuA_j4jV4V2ULZYynE-KTqiWJN_TUD1gxkkK6pIO2ZI",
         "token_uri": "https://oauth2.googleapis.com/token",
         "client_id": "70084084532-eocpb8uprh1jcliq5jftjd1ulu50q7aa.apps.googleusercontent.com",
         "client_secret": "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",
@@ -14,6 +14,7 @@
           "https://www.googleapis.com/auth/calendar.events",
           "https://www.googleapis.com/auth/gmail.compose",
           "https://www.googleapis.com/auth/userinfo.email",
+          "https://www.googleapis.com/auth/tasks",
           "openid"
         ]
       }

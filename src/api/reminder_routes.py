@@ -15,6 +15,11 @@ class EmailRequest(BaseModel):
     account_id: str
     job_details: Dict[str, Any]
 
+class TaskRequest(BaseModel):
+    account_id: str
+    job_details: Dict[str, Any]
+    due_date: str # ISO format
+
 @router.post("/calendar")
 def create_calendar_event(req: CalendarRequest):
     """Creates a calendar event for the specified account."""
@@ -32,6 +37,17 @@ def send_email_reminder(req: EmailRequest):
     """Sends an email reminder to self."""
     try:
         result = service.send_email_reminder(req.account_id, req.job_details)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/tasks")
+def create_task(req: TaskRequest):
+    """Creates a Google Task."""
+    try:
+        result = service.create_google_task(req.account_id, req.job_details, req.due_date)
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
