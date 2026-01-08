@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { ExternalLink, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, ArrowLeft, Upload, Ban, EyeOff } from 'lucide-react'
+import { ExternalLink, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, ArrowLeft, Upload, Ban, EyeOff, UserCheck } from 'lucide-react'
 import { ReminderModal } from './ReminderModal'
 
 const api = axios.create({
@@ -9,6 +9,8 @@ const api = axios.create({
 
 export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUpdate }) {
     const [jobs, setJobs] = useState([])
+    const [interviewJobs, setInterviewJobs] = useState([])
+    const [viewMode, setViewMode] = useState('APPLIED') // APPLIED or INTERVIEW
     const [rejectedCount, setRejectedCount] = useState(0)
     const [loading, setLoading] = useState(true)
     const [selectedJob, setSelectedJob] = useState(null)
@@ -38,6 +40,7 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
         { key: 'location', label: 'Location', getValue: j => j.location || j.city || 'N/A' },
         { key: 'salary', label: 'Salary', getValue: j => (j.min_amount && j.max_amount ? `$${j.min_amount} - $${j.max_amount}` : 'N/A'), className: "text-slate-500" },
         { key: 'date_posted', label: 'Posted', getValue: j => j.date_posted || 'Recently', className: "text-slate-500" },
+        { key: 'status', label: 'Status', getValue: j => j.my_status || 'NEW' },
     ], [])
 
     const isJobSaved = (job) => {
@@ -53,9 +56,11 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
         setLoading(true)
         try {
             const res = await api.get('/jobs')
-            const appliedJobs = res.data.filter(j => j.my_status === 'APPLIED')
+            const applied = res.data.filter(j => j.my_status === 'APPLIED')
+            const interview = res.data.filter(j => j.my_status === 'INTERVIEW')
             const rejected = res.data.filter(j => j.my_status === 'REJECTED')
-            setJobs(appliedJobs)
+            setJobs(applied)
+            setInterviewJobs(interview)
             setRejectedCount(rejected.length)
         } catch (err) {
             console.error("Failed to fetch applied jobs", err)
@@ -230,6 +235,38 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
         }
     }
 
+    const handleInterviewSelected = async () => {
+        if (!window.confirm(`Are you sure you want to move ${selectedJobUrls.length} jobs to Interview?`)) return
+
+        try {
+            await Promise.all(selectedJobUrls.map(async (url) => {
+                await api.post('/jobs/update', {
+                    url: url,
+                    status: 'INTERVIEW'
+                })
+                // Find existing job to notify parent
+                const job = jobs.find(j => j.job_url === url)
+                if (job && onJobUpdate) {
+                    onJobUpdate({ ...job, my_status: 'INTERVIEW' })
+                }
+            }))
+
+            // Move from Applied (jobs) to Interview (interviewJobs)
+            const remainingJobs = jobs.filter(j => !selectedJobUrls.includes(j.job_url))
+            const movedJobs = jobs.filter(j => selectedJobUrls.includes(j.job_url))
+            const updatedMovedJobs = movedJobs.map(j => ({ ...j, my_status: 'INTERVIEW' }))
+
+            setJobs(remainingJobs)
+            setInterviewJobs([...interviewJobs, ...updatedMovedJobs])
+            setSelectedJobUrls([])
+            alert(`Successfully moved ${selectedJobUrls.length} jobs to Interview.`)
+
+        } catch (err) {
+            console.error('Failed to move selected jobs to interview:', err)
+            alert('Failed to move some jobs. Please try again.')
+        }
+    }
+
     const handleImportExcel = async (file) => {
         if (!file) return
 
@@ -319,9 +356,12 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
         }
     }
 
+    // Determine which jobs to display
+    const currentViewJobs = viewMode === 'INTERVIEW' ? interviewJobs : jobs
+
     // Apply filters
     const filteredJobs = useMemo(() => {
-        return jobs.filter(job => {
+        return currentViewJobs.filter(job => {
             return COLUMN_DEFS.every(col => {
                 const selectedValues = filters[col.key]
                 if (selectedValues === undefined) return true
@@ -330,7 +370,7 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
                 return selectedValues.includes(value)
             })
         })
-    }, [jobs, filters, COLUMN_DEFS])
+    }, [currentViewJobs, filters, COLUMN_DEFS])
 
     const toggleFilter = (columnKey, value) => {
         setFilters(prev => {
@@ -401,6 +441,13 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
                                 Unapply Selected ({selectedJobUrls.length})
                             </button>
                             <button
+                                onClick={handleInterviewSelected}
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-indigo-700 rounded-md hover:bg-indigo-700 transition-colors shadow-sm"
+                            >
+                                <UserCheck size={16} />
+                                Interview Selected ({selectedJobUrls.length})
+                            </button>
+                            <button
                                 onClick={handleRejectSelected}
                                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-red-700 rounded-md hover:bg-red-700 transition-colors shadow-sm"
                             >
@@ -446,13 +493,19 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
             <main className="p-6 max-w-[1600px] mx-auto">
                 {/* Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div
+                        onClick={() => setViewMode('APPLIED')}
+                        className={`p-4 rounded-xl border shadow-sm cursor-pointer transition-colors ${viewMode === 'APPLIED' ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-500/20' : 'bg-white border-slate-200 hover:border-blue-300'}`}
+                    >
                         <div className="text-slate-500 text-sm font-medium">Total Applied</div>
                         <div className="text-2xl font-bold mt-1 text-blue-600">{jobs.length}</div>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                        <div className="text-slate-500 text-sm font-medium">Selected</div>
-                        <div className="text-2xl font-bold mt-1 text-indigo-600">{selectedJobUrls.length}</div>
+                    <div
+                        onClick={() => setViewMode('INTERVIEW')}
+                        className={`p-4 rounded-xl border shadow-sm cursor-pointer transition-colors ${viewMode === 'INTERVIEW' ? 'bg-indigo-50 border-indigo-200 ring-2 ring-indigo-500/20' : 'bg-white border-slate-200 hover:border-indigo-300'}`}
+                    >
+                        <div className="text-slate-500 text-sm font-medium">Interview Selected</div>
+                        <div className="text-2xl font-bold mt-1 text-indigo-600">{interviewJobs.length}</div>
                     </div>
                     <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                         <div className="text-slate-500 text-sm font-medium">Rejected</div>
@@ -624,6 +677,46 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
                                                         >
                                                             <Ban size={16} />
                                                         </button>
+                                                        {job.my_status !== 'INTERVIEW' && (
+                                                            <button
+                                                                title="Mark as Interview"
+                                                                className="p-1 hover:bg-slate-200 rounded text-indigo-600"
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    if (window.confirm('Mark this job as INTERVIEW?')) {
+                                                                        try {
+                                                                            await api.post('/jobs/update', {
+                                                                                url: job.job_url,
+                                                                                status: 'INTERVIEW'
+                                                                            })
+                                                                            // Update local lists
+                                                                            // Remove from current list (filtered applied/interview) if needed
+                                                                            // But simplified: just update the job status
+                                                                            const updated = { ...job, my_status: 'INTERVIEW' }
+
+                                                                            // If we are in APPLIED view, remove it
+                                                                            // If we are in INTERVIEW view, keep it (but it was already interview? no)
+
+                                                                            // Update master lists
+                                                                            // If it was in jobs (Applied), remove and add to interviewJobs
+                                                                            if (jobs.find(j => j.job_url === job.job_url)) {
+                                                                                setJobs(jobs.filter(j => j.job_url !== job.job_url))
+                                                                                setInterviewJobs([...interviewJobs, updated])
+                                                                            }
+                                                                            // If it was somehow elsewhere
+
+                                                                            if (onJobUpdate) {
+                                                                                onJobUpdate(updated)
+                                                                            }
+                                                                        } catch (err) {
+                                                                            console.error('Failed to mark as interview:', err)
+                                                                        }
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <UserCheck size={16} />
+                                                            </button>
+                                                        )}
                                                         <button
                                                             title="Hide"
                                                             className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-600"

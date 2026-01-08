@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, Trash2, Search, Ban } from 'lucide-react'
+import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, Trash2, Search, Ban, UserCheck } from 'lucide-react'
 import { ReminderModal } from './ReminderModal'
 
 const api = axios.create({
@@ -470,6 +470,30 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                                     }}
                                                 >
                                                     <Ban size={16} />
+                                                </button>
+                                            )}
+                                            {job.my_status !== 'INTERVIEW' && (
+                                                <button
+                                                    title="Mark as Interview"
+                                                    className="p-1 hover:bg-indigo-50 rounded text-slate-400 hover:text-indigo-600"
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        if (window.confirm('Mark this job as INTERVIEW?')) {
+                                                            try {
+                                                                await api.post('/jobs/update', {
+                                                                    url: job.job_url,
+                                                                    status: 'INTERVIEW'
+                                                                })
+                                                                if (onJobUpdate) {
+                                                                    onJobUpdate({ ...job, my_status: 'INTERVIEW' })
+                                                                }
+                                                            } catch (err) {
+                                                                console.error('Failed to mark as interview:', err)
+                                                            }
+                                                        }
+                                                    }}
+                                                >
+                                                    <UserCheck size={16} />
                                                 </button>
                                             )}
                                         </div>
