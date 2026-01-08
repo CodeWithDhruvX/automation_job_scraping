@@ -9,6 +9,7 @@ const api = axios.create({
 
 export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUpdate }) {
     const [jobs, setJobs] = useState([])
+    const [rejectedCount, setRejectedCount] = useState(0)
     const [loading, setLoading] = useState(true)
     const [selectedJob, setSelectedJob] = useState(null)
     const [reminderJob, setReminderJob] = useState(null)
@@ -53,7 +54,9 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
         try {
             const res = await api.get('/jobs')
             const appliedJobs = res.data.filter(j => j.my_status === 'APPLIED')
+            const rejected = res.data.filter(j => j.my_status === 'REJECTED')
             setJobs(appliedJobs)
+            setRejectedCount(rejected.length)
         } catch (err) {
             console.error("Failed to fetch applied jobs", err)
         } finally {
@@ -190,6 +193,7 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
             })
             // Remove from local list
             setJobs(jobs.filter(j => j.job_url !== job.job_url))
+            setRejectedCount(prev => prev + 1)
             if (onJobUpdate) {
                 onJobUpdate({ ...job, my_status: 'REJECTED' })
             }
@@ -216,6 +220,7 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
 
             // Remove from local list
             setJobs(jobs.filter(j => !selectedJobUrls.includes(j.job_url)))
+            setRejectedCount(prev => prev + selectedJobUrls.length)
             setSelectedJobUrls([])
             alert(`Successfully rejected ${selectedJobUrls.length} jobs.`)
 
@@ -450,8 +455,8 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
                         <div className="text-2xl font-bold mt-1 text-indigo-600">{selectedJobUrls.length}</div>
                     </div>
                     <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                        <div className="text-slate-500 text-sm font-medium">Filtered</div>
-                        <div className="text-2xl font-bold mt-1 text-slate-600">{filteredJobs.length}</div>
+                        <div className="text-slate-500 text-sm font-medium">Rejected</div>
+                        <div className="text-2xl font-bold mt-1 text-red-600">{rejectedCount}</div>
                     </div>
                 </div>
 
