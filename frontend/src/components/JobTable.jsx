@@ -3,6 +3,8 @@ import axios from 'axios'
 import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, Trash2, Search, Ban, UserCheck, MessageSquare } from 'lucide-react'
 import { ReminderModal } from './ReminderModal'
 
+import { ManualAddJobModal } from './ManualAddJobModal'
+
 const api = axios.create({
     baseURL: 'http://localhost:8000/api'
 })
@@ -10,6 +12,7 @@ const api = axios.create({
 export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFilteredData, selectedJobUrls = [], onSelectionChange, onDeleteJob }) {
     const [selectedJob, setSelectedJob] = useState(null)
     const [reminderJob, setReminderJob] = useState(null)
+    const [isAddJobOpen, setIsAddJobOpen] = useState(false)
     const [copied, setCopied] = useState(false)
     const [linkCopied, setLinkCopied] = useState(false)
     const [mdCopied, setMdCopied] = useState(false)
@@ -214,6 +217,25 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
         return (
             <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                 <p>No jobs found. Start a scrape!</p>
+                <button
+                    onClick={() => setIsAddJobOpen(true)}
+                    className="mt-4 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100"
+                >
+                    + Add Job Manually
+                </button>
+                {isAddJobOpen && (
+                    <ManualAddJobModal
+                        onClose={() => setIsAddJobOpen(false)}
+                        onJobAdded={() => {
+                            // Ideally, we trigger a refresh here. Since 'jobs' prop is passed down,
+                            // we rely on the parent or we could have a callback 'onRefreshRequest'
+                            // For now, let's just close it. The user might need to refresh manually 
+                            // unless onJobUpdate handles adding?
+                            // Actually, adding requires refetching the whole list typically.
+                            window.location.reload()
+                        }}
+                    />
+                )}
             </div>
         )
     }
@@ -239,6 +261,12 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                         </button>
                     )}
                 </div>
+                <button
+                    onClick={() => setIsAddJobOpen(true)}
+                    className="ml-auto px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center gap-2"
+                >
+                    <span className="text-lg leading-none">+</span> Add Job
+                </button>
             </div>
 
             <div className="overflow-x-auto min-h-[400px]">
@@ -775,6 +803,16 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
             )}
             {reminderJob && (
                 <ReminderModal job={reminderJob} onClose={() => setReminderJob(null)} />
+            )}
+            {isAddJobOpen && (
+                <ManualAddJobModal
+                    onClose={() => setIsAddJobOpen(false)}
+                    onJobAdded={() => {
+                        // Reload to fetch the new job.
+                        // Ideally we would optimistically add it, but for simplicity reloading ensures sync with backend
+                        window.location.reload()
+                    }}
+                />
             )}
         </>
     )
