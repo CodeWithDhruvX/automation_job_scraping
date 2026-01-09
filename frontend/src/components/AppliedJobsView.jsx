@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { ExternalLink, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, ArrowLeft, Upload, Ban, EyeOff, UserCheck } from 'lucide-react'
+import { ExternalLink, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, ArrowLeft, Upload, Ban, EyeOff, UserCheck, Download } from 'lucide-react'
 import { ReminderModal } from './ReminderModal'
 
 const api = axios.create({
@@ -356,6 +356,36 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
         }
     }
 
+    const handleExportExcel = async () => {
+        try {
+            const XLSX = await import('xlsx')
+
+            // Prepare data for export
+            const exportData = filteredJobs.map(job => ({
+                Title: job.title,
+                Company: job.company,
+                Location: job.location || job.city || '',
+                Salary: (job.min_amount && job.max_amount) ? `${job.min_amount} - ${job.max_amount}` : 'N/A',
+                Posted: job.date_posted,
+                Status: job.my_status,
+                URL: job.job_url,
+                Description: job.description ? job.description.substring(0, 32000) : ''
+            }))
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData)
+            const workbook = XLSX.utils.book_new()
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Applied Jobs")
+
+            // Generate filename based on date
+            const dateStr = new Date().toISOString().split('T')[0]
+            XLSX.writeFile(workbook, `applied_jobs_${dateStr}.xlsx`)
+
+        } catch (err) {
+            console.error('Failed to export Excel:', err)
+            alert('Failed to export to Excel.')
+        }
+    }
+
     // Determine which jobs to display
     const currentViewJobs = viewMode === 'INTERVIEW' ? interviewJobs : jobs
 
@@ -472,6 +502,14 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
                     >
                         <Upload size={16} />
                         Import Excel
+                    </button>
+                    <button
+                        onClick={handleExportExcel}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors shadow-sm"
+                        title="Export current jobs to Excel"
+                    >
+                        <Download size={16} />
+                        Export Excel
                     </button>
                     <button
                         onClick={() => window.location.hash = 'rejected-jobs'}
