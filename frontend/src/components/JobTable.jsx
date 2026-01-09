@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, Trash2, Search, Ban, UserCheck } from 'lucide-react'
+import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, Trash2, Search, Ban, UserCheck, MessageSquare } from 'lucide-react'
 import { ReminderModal } from './ReminderModal'
 
 const api = axios.create({
@@ -13,6 +13,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
     const [copied, setCopied] = useState(false)
     const [linkCopied, setLinkCopied] = useState(false)
     const [mdCopied, setMdCopied] = useState(false)
+    const [promptCopied, setPromptCopied] = useState(false)
     const [loadingDesc, setLoadingDesc] = useState(false)
     const [filters, setFilters] = useState({})
     const [activeFilterColumn, setActiveFilterColumn] = useState(null)
@@ -89,6 +90,19 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
             setTimeout(() => setMdCopied(false), 2000)
         } catch (err) {
             console.error('Failed to copy markdown:', err)
+        }
+    }
+
+    const handleCopyInterviewPrompt = async () => {
+        if (!selectedJob) return
+        const preamble = "Here is a job description. Please help me prepare for an interview for this role, focusing on key skills and potential questions.\n\n"
+        const text = `${preamble}Title: ${selectedJob.title}\nCompany: ${selectedJob.company}\n\n${selectedJob.description || ''}`
+        try {
+            await navigator.clipboard.writeText(text)
+            setPromptCopied(true)
+            setTimeout(() => setPromptCopied(false), 2000)
+        } catch (err) {
+            console.error('Failed to copy interview prompt:', err)
         }
     }
 
@@ -577,6 +591,14 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                         >
                                             {mdCopied ? <Check size={14} className="text-green-600" /> : <FileText size={14} />}
                                             {mdCopied ? <span className="text-green-600">Copied</span> : "Markdown"}
+                                        </button>
+                                        <button
+                                            onClick={handleCopyInterviewPrompt}
+                                            className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-purple-600 hover:border-purple-200 hover:bg-purple-50 transition-all font-medium"
+                                            title="Copy Interview Prep Prompt"
+                                        >
+                                            {promptCopied ? <Check size={14} className="text-green-600" /> : <MessageSquare size={14} />}
+                                            {promptCopied ? <span className="text-green-600">Copied</span> : "Interview Prompt"}
                                         </button>
                                         <button
                                             onClick={handleCopy}
