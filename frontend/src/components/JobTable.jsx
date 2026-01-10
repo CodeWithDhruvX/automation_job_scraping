@@ -262,8 +262,15 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                     )}
                 </div>
                 <button
+                    onClick={() => setReminderJob({ isCustom: true })}
+                    className="ml-auto mr-2 px-3 py-2.5 text-sm font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition-all shadow-sm flex items-center gap-2"
+                    title="Set Custom Reminder"
+                >
+                    <Bell size={18} />
+                </button>
+                <button
                     onClick={() => setIsAddJobOpen(true)}
-                    className="ml-auto px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center gap-2"
+                    className="px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center gap-2"
                 >
                     <span className="text-lg leading-none">+</span> Add Job
                 </button>

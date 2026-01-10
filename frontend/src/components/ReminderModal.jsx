@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
 import { X, Calendar, Mail, Loader2, CheckCircle, AlertCircle, StickyNote, CheckSquare } from 'lucide-react'
 import Flatpickr from "react-flatpickr";
@@ -15,6 +15,12 @@ const FLATPICKR_OPTIONS = {
 }
 
 export function ReminderModal({ job, onClose }) {
+    const isCustom = job.isCustom || false
+    const [title, setTitle] = useState(job.title || '')
+    const [company, setCompany] = useState(job.company || '')
+    const [location, setLocation] = useState(job.location || '')
+    const [jobUrl, setJobUrl] = useState(job.job_url || '')
+
     const [accounts, setAccounts] = useState([])
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
@@ -33,8 +39,11 @@ export function ReminderModal({ job, onClose }) {
     // Google Tasks Enhancements
     const [taskLists, setTaskLists] = useState([])
     const [selectedTaskList, setSelectedTaskList] = useState('@default')
-    const [customNotes, setCustomNotes] = useState('')
+    const [userNotes, setUserNotes] = useState(null)
     const [isFetchingLists, setIsFetchingLists] = useState(false)
+
+    const [description, setDescription] = useState(job.description || '')
+    const [fetchingDesc, setFetchingDesc] = useState(false)
 
     // Set default datetime to tomorrow 9am
     useEffect(() => {
@@ -45,13 +54,9 @@ export function ReminderModal({ job, onClose }) {
 
         fetchAccounts()
     }, [])
-    const [description, setDescription] = useState(job.description || '')
-    const [fetchingDesc, setFetchingDesc] = useState(false)
-
-
 
     useEffect(() => {
-        if (!job.description && !description) {
+        if (!isCustom && !job.description && !description && job.job_url) {
             setFetchingDesc(true)
             api.post('/jobs/fetch_desc', { url: job.job_url })
                 .then(res => {
@@ -60,15 +65,17 @@ export function ReminderModal({ job, onClose }) {
                 .catch(err => console.error("Failed to fetch desc for reminder", err))
                 .finally(() => setFetchingDesc(false))
         }
-    }, [job])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
-    // Pre-fill Custom Notes when description is available
-    useEffect(() => {
+    // Derived notes to avoid useEffect double-renders
+    const derivedNotes = useMemo(() => {
+        if (userNotes !== null) return userNotes
+
         const descText = description || ''
         const truncatedDesc = descText.length > 500 ? descText.substring(0, 500) + '...' : descText
-        const defaultNotes = `Company: ${job.company}\nLocation: ${job.location || 'Unknown'}\n\nLink: ${job.job_url}\n\nDescription:\n${truncatedDesc}`
-        setCustomNotes(defaultNotes)
-    }, [job, description])
+        return `Company: ${company}\nLocation: ${location || 'Unknown'}\n\nLink: ${jobUrl}\n\nDescription:\n${truncatedDesc}`
+    }, [userNotes, description, company, location, jobUrl])
 
     // Fetch Task Lists when Reminder Type is 'tasks'
     useEffect(() => {
@@ -126,13 +133,13 @@ export function ReminderModal({ job, onClose }) {
                     const start = dateTime ? new Date(dateTime) : new Date()
                     const end = new Date(start.getTime() + 30 * 60000) // 30 mins
 
-                    const subject = encodeURIComponent(`Follow up: ${job.title}`)
+                    const subject = encodeURIComponent(`Follow up: ${title}`)
 
                     // Truncate description to avoid URL length issues (approx 2000 chars safe)
                     const descText = description || ''
                     const truncatedDesc = descText.length > 1500 ? descText.substring(0, 1500) + '...' : descText
 
-                    const bodyContent = `Follow up on application for ${job.title} at ${job.company}.\n\nLink: ${job.job_url}\n\nDescription:\n${truncatedDesc}`
+                    const bodyContent = `Follow up on application for ${title} at ${company}.\n\nLink: ${jobUrl}\n\nDescription:\n${truncatedDesc}`
                     const body = encodeURIComponent(bodyContent)
 
                     // Construct Floating Time (Local Clock Time) for Outlook
@@ -150,26 +157,26 @@ export function ReminderModal({ job, onClose }) {
                     const startStr = formatLocal(start)
                     const endStr = formatLocal(end)
 
-                    const location = encodeURIComponent(job.location || '')
+                    const locationParam = encodeURIComponent(location || '')
                     const to = encodeURIComponent(attendees)
                     const cc = encodeURIComponent(ccAttendees)
                     const reminder = encodeURIComponent(reminderMinutes)
 
-                    const url = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&startdt=${startStr}&enddt=${endStr}&subject=${subject}&body=${body}&location=${location}&to=${to}&cc=${cc}&reminder=${reminder}`
+                    const url = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&startdt=${startStr}&enddt=${endStr}&subject=${subject}&body=${body}&location=${locationParam}&to=${to}&cc=${cc}&reminder=${reminder}`
 
                     window.open(url, '_blank')
                 } else if (reminderType === 'onenote') {
                     // Copy to Clipboard Logic
                     try {
                         const htmlContent = `
-                            <h1 style="color:#2e1065; margin-bottom:8px;">${job.title}</h1>
-                            <p style="font-weight:bold; margin:0;">${job.company} - ${job.location || 'Remote'}</p>
-                            <p style="margin-bottom:16px;"><a href="${job.job_url}">View Job Posting</a></p>
+                            <h1 style="color:#2e1065; margin-bottom:8px;">${title}</h1>
+                            <p style="font-weight:bold; margin:0;">${company} - ${location || 'Remote'}</p>
+                            <p style="margin-bottom:16px;"><a href="${jobUrl}">View Job Posting</a></p>
                             <hr />
                             <div style="margin-top:16px; white-space: pre-wrap;">${description || 'No description available.'}</div>
                         `
 
-                        const textContent = `${job.title}\n${job.company} - ${job.location || 'Remote'}\nLink: ${job.job_url}\n\n${description || ''}`
+                        const textContent = `${title}\n${company} - ${location || 'Remote'}\nLink: ${jobUrl}\n\n${description || ''}`
 
                         const blobHtml = new Blob([htmlContent], { type: 'text/html' })
                         const blobText = new Blob([textContent], { type: 'text/plain' })
@@ -191,11 +198,6 @@ export function ReminderModal({ job, onClose }) {
                         setSubmitting(false)
                         return
                     }
-                } else {
-                    // Mailto for email
-                    const subject = encodeURIComponent(`Reminder: ${job.title}`)
-                    const body = encodeURIComponent(`Don't forget to check on this job:\n\n${job.title} at ${job.company}\n\nLink: ${job.job_url}`)
-                    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank')
                 }
 
                 setStep('success')
@@ -207,10 +209,18 @@ export function ReminderModal({ job, onClose }) {
             }
 
             // Regular Backend API Call for connected accounts
+            const jobDetails = {
+                title,
+                company,
+                location,
+                job_url: jobUrl,
+                description
+            }
+
             if (reminderType === 'calendar') {
                 await api.post('/reminders/calendar', {
                     account_id: selectedAccount,
-                    job_details: { ...job, description }, // Pass potentially fetched description
+                    job_details: jobDetails,
                     time: dateTime.toISOString(),
                     duration_minutes: duration,
                     attendees: attendees.split(',').map(e => e.trim()).filter(e => e),
@@ -225,15 +235,10 @@ export function ReminderModal({ job, onClose }) {
             } else if (reminderType === 'tasks') {
                 await api.post('/reminders/tasks', {
                     account_id: selectedAccount,
-                    job_details: { ...job, description },
+                    job_details: jobDetails,
                     due_date: dateTime.toISOString(),
                     tasklist_id: selectedTaskList,
-                    notes: customNotes
-                })
-            } else {
-                await api.post('/reminders/email', {
-                    account_id: selectedAccount,
-                    job_details: { ...job, description }
+                    notes: derivedNotes
                 })
             }
             setStep('success')
@@ -250,18 +255,18 @@ export function ReminderModal({ job, onClose }) {
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
             <div
-                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+                className="absolute inset-0 bg-slate-900/60 transition-opacity"
                 onClick={onClose}
             />
-            <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/50">
+            <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 max-h-[90vh]">
+                <div className="flex-none flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/50">
                     <h3 className="font-bold text-slate-900">Set Reminder / Save</h3>
                     <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600">
                         <X size={20} />
                     </button>
                 </div>
 
-                <div className="p-6">
+                <div className="flex-1 p-6 overflow-y-auto">
                     {loading ? (
                         <div className="flex justify-center py-8"><Loader2 className="animate-spin text-blue-500" /></div>
                     ) : accounts.length === 0 ? (
@@ -286,6 +291,49 @@ export function ReminderModal({ job, onClose }) {
                         </div>
                     ) : (
                         <div className="space-y-4">
+                            {isCustom && (
+                                <div className="space-y-3 p-3 bg-slate-50 rounded-lg border border-slate-100 mb-2">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="col-span-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Job Title"
+                                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                                                value={title}
+                                                onChange={e => setTitle(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="col-span-2 sm:col-span-1">
+                                            <input
+                                                type="text"
+                                                placeholder="Company"
+                                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                value={company}
+                                                onChange={e => setCompany(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="col-span-2 sm:col-span-1">
+                                            <input
+                                                type="text"
+                                                placeholder="Location"
+                                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                value={location}
+                                                onChange={e => setLocation(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="col-span-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Job URL (Optional)"
+                                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-blue-600"
+                                                value={jobUrl}
+                                                onChange={e => setJobUrl(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {reminderType !== 'onenote' && (
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Account</label>
@@ -311,14 +359,6 @@ export function ReminderModal({ job, onClose }) {
                                 >
                                     <Calendar size={16} />
                                     <span className="hidden sm:inline">Calendar</span>
-                                </button>
-                                <button
-                                    className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all flex justify-center items-center gap-2 ${reminderType === 'email' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                                    onClick={() => setReminderType('email')}
-                                    title="Send Email"
-                                >
-                                    <Mail size={16} />
-                                    <span className="hidden sm:inline">Email</span>
                                 </button>
                                 <button
                                     className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all flex justify-center items-center gap-2 ${reminderType === 'onenote' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
@@ -519,8 +559,8 @@ export function ReminderModal({ job, onClose }) {
                                         <textarea
                                             className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
                                             rows={4}
-                                            value={customNotes}
-                                            onChange={e => setCustomNotes(e.target.value)}
+                                            value={derivedNotes}
+                                            onChange={e => setUserNotes(e.target.value)}
                                         />
                                     </div>
                                 </div>
@@ -535,7 +575,7 @@ export function ReminderModal({ job, onClose }) {
                                     `}
                                 >
                                     {submitting && <Loader2 size={16} className="animate-spin" />}
-                                    {reminderType === 'calendar' ? 'Add to Calendar' : reminderType === 'onenote' ? 'Copy to Clipboard' : reminderType === 'tasks' ? 'Add Task' : 'Send Email'}
+                                    {reminderType === 'calendar' ? 'Add to Calendar' : reminderType === 'onenote' ? 'Copy to Clipboard' : 'Add Task'}
                                 </button>
                             </div>
                         </div>
