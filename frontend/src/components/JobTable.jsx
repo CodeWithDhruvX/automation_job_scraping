@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, Trash2, Search, Ban, UserCheck, MessageSquare } from 'lucide-react'
+import { ExternalLink, CheckCircle, EyeOff, X, Loader2, Bookmark, Copy, Check, Bell, Link, FileText, XCircle, Trash2, Search, Ban, UserCheck, MessageSquare, ArrowDown, ArrowUp } from 'lucide-react'
 import { ReminderModal } from './ReminderModal'
 
 import { ManualAddJobModal } from './ManualAddJobModal'
@@ -21,6 +21,8 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
     const [filters, setFilters] = useState({})
     const [activeFilterColumn, setActiveFilterColumn] = useState(null)
     const [globalSearchTerm, setGlobalSearchTerm] = useState('')
+    const [sortColumn, setSortColumn] = useState(null)
+    const [sortDirection, setSortDirection] = useState('asc') // 'asc' or 'desc'
 
     // Column Definitions for consistency between display and filtering
     // Column Definitions for consistency between display and filtering
@@ -30,14 +32,16 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
             label: '',
             getValue: j => j.job_url,
             className: "w-10 text-center px-2",
-            isSelect: true
+            isSelect: true,
+            sortable: false
         },
-        { key: 'title', label: 'Title', getValue: j => j.title || 'N/A', className: "font-medium text-slate-900 max-w-md truncate" },
-        { key: 'company', label: 'Company', getValue: j => j.company || 'N/A' },
-        { key: 'location', label: 'Location', getValue: j => j.location || j.city || 'N/A' },
-        { key: 'salary', label: 'Salary', getValue: j => (j.min_amount && j.max_amount ? `$${j.min_amount} - $${j.max_amount}` : 'N/A'), className: "text-slate-500" },
-        { key: 'date_posted', label: 'Posted', getValue: j => j.date_posted || 'Recently', className: "text-slate-500" },
-        { key: 'status', label: 'Status', getValue: j => j.my_status || 'NEW' },
+        { key: 'title', label: 'Title', getValue: j => j.title || 'N/A', className: "font-medium text-slate-900 max-w-md truncate", sortable: true },
+        { key: 'company', label: 'Company', getValue: j => j.company || 'N/A', sortable: true },
+        { key: 'location', label: 'Location', getValue: j => j.location || j.city || 'N/A', sortable: true },
+        { key: 'salary', label: 'Salary', getValue: j => (j.min_amount && j.max_amount ? `$${j.min_amount} - $${j.max_amount}` : 'N/A'), getRawValue: j => j.min_amount || 0, className: "text-slate-500", sortable: true },
+        { key: 'date_posted', label: 'Posted', getValue: j => j.date_posted || 'Recently', className: "text-slate-500", sortable: true },
+        { key: 'date_modified', label: 'Modified', getValue: j => j.status_updated_at ? new Date(j.status_updated_at).toLocaleDateString() : 'N/A', getRawValue: j => j.status_updated_at || j.added_date || '', className: "text-slate-500", sortable: true },
+        { key: 'status', label: 'Status', getValue: j => j.my_status || 'NEW', sortable: true },
     ], [])
 
     const isJobSaved = (job) => {
@@ -136,7 +140,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
     // Apply filters
     // Apply filters
     const filteredJobs = useMemo(() => {
-        return jobs.filter(job => {
+        let result = jobs.filter(job => {
             // Global Search Filter
             if (globalSearchTerm) {
                 const term = globalSearchTerm.toLowerCase()
@@ -168,7 +172,37 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                 return selectedValues.includes(value)
             })
         })
-    }, [jobs, filters, COLUMN_DEFS, globalSearchTerm])
+
+        // Apply sorting
+        if (sortColumn) {
+            const column = COLUMN_DEFS.find(col => col.key === sortColumn)
+            if (column) {
+                result = [...result].sort((a, b) => {
+                    // Use getRawValue if available, otherwise getValue
+                    const aVal = column.getRawValue ? column.getRawValue(a) : column.getValue(a)
+                    const bVal = column.getRawValue ? column.getRawValue(b) : column.getValue(b)
+
+                    // Handle N/A and empty values
+                    if (aVal === 'N/A' && bVal !== 'N/A') return 1
+                    if (aVal !== 'N/A' && bVal === 'N/A') return -1
+                    if (aVal === 'N/A' && bVal === 'N/A') return 0
+
+                    // For dates and numbers
+                    if (column.key === 'date_modified' || column.key === 'salary') {
+                        const aNum = column.key === 'date_modified' ? new Date(aVal).getTime() : parseFloat(aVal) || 0
+                        const bNum = column.key === 'date_modified' ? new Date(bVal).getTime() : parseFloat(bVal) || 0
+                        return sortDirection === 'asc' ? aNum - bNum : bNum - aNum
+                    }
+
+                    // For strings
+                    const comparison = String(aVal).localeCompare(String(bVal))
+                    return sortDirection === 'asc' ? comparison : -comparison
+                })
+            }
+        }
+
+        return result
+    }, [jobs, filters, COLUMN_DEFS, globalSearchTerm, sortColumn, sortDirection])
 
     // Notify parent of filtered data
     useEffect(() => {
@@ -314,10 +348,44 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                 }
 
                                 const isFiltering = !!filters[col.key]
+                                const isSorting = sortColumn === col.key
+                                const isSortable = col.sortable !== false
+
                                 return (
                                     <th key={col.key} className="px-6 py-4 relative group">
                                         <div className="flex items-center justify-between gap-2">
-                                            <span>{col.label}</span>
+                                            <div
+                                                className={`flex items-center gap-1.5 ${isSortable ? 'cursor-pointer hover:text-blue-600' : ''}`}
+                                                onClick={() => {
+                                                    if (isSortable) {
+                                                        if (sortColumn === col.key) {
+                                                            // Toggle direction
+                                                            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+                                                        } else {
+                                                            // Set new column
+                                                            setSortColumn(col.key)
+                                                            setSortDirection('asc')
+                                                        }
+                                                    }
+                                                }}
+                                            >
+                                                <span>{col.label}</span>
+                                                {isSortable && (
+                                                    <div className="flex flex-col">
+                                                        {isSorting ? (
+                                                            sortDirection === 'asc' ? (
+                                                                <ArrowUp size={14} className="text-blue-600" />
+                                                            ) : (
+                                                                <ArrowDown size={14} className="text-blue-600" />
+                                                            )
+                                                        ) : (
+                                                            <div className="opacity-0 group-hover:opacity-40 transition-opacity">
+                                                                <ArrowUp size={14} />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                             <div className="relative column-filter-container">
                                                 <button
                                                     onClick={(e) => {
