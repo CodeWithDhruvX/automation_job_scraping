@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Calendar, RefreshCw, Check, X, ExternalLink, Mail, Clock, Copy } from 'lucide-react'
+import { Calendar, RefreshCw, Check, X, ExternalLink, Mail, Clock, Copy, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 
 // Configure Axios
 const api = axios.create({
@@ -20,7 +20,16 @@ export const InviteLoggerView = () => {
     // Search & Pagination State
     const [searchTerm, setSearchTerm] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
+
     const ITEMS_PER_PAGE = 10
+    const [sortConfig, setSortConfig] = useState(() => {
+        const saved = localStorage.getItem('invite_logger_sort')
+        return saved ? JSON.parse(saved) : { key: 'detection_timestamp', direction: 'desc' }
+    })
+
+    useEffect(() => {
+        localStorage.setItem('invite_logger_sort', JSON.stringify(sortConfig))
+    }, [sortConfig])
 
     // Filter Logic
     const filteredInvites = invites.filter(invite => {
@@ -35,9 +44,55 @@ export const InviteLoggerView = () => {
         )
     })
 
+
+
+    // Sorting Logic
+    const handleSort = (key) => {
+        let direction = 'asc'
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc'
+        }
+        setSortConfig({ key, direction })
+    }
+
+    const sortedInvites = [...filteredInvites].sort((a, b) => {
+        if (!sortConfig.key) return 0
+
+        let aValue = a[sortConfig.key]
+        let bValue = b[sortConfig.key]
+
+        // Handle null/undefined values
+        if (aValue === null || aValue === undefined) aValue = ""
+        if (bValue === null || bValue === undefined) bValue = ""
+
+        // Date sorting for specific columns
+        if (['meeting_time', 'detection_timestamp'].includes(sortConfig.key)) {
+            const dateA = new Date(aValue).getTime()
+            const dateB = new Date(bValue).getTime()
+            // Handle invalid dates (push to bottom)
+            if (isNaN(dateA)) return 1
+            if (isNaN(dateB)) return -1
+            return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA
+        }
+
+        // String sorting
+        if (typeof aValue === 'string') {
+            aValue = aValue.toLowerCase()
+            bValue = bValue.toLowerCase()
+        }
+
+        if (aValue < bValue) {
+            return sortConfig.direction === 'asc' ? -1 : 1
+        }
+        if (aValue > bValue) {
+            return sortConfig.direction === 'asc' ? 1 : -1
+        }
+        return 0
+    })
+
     // Pagination Logic
-    const totalPages = Math.ceil(filteredInvites.length / ITEMS_PER_PAGE)
-    const currentInvites = filteredInvites.slice(
+    const totalPages = Math.ceil(sortedInvites.length / ITEMS_PER_PAGE)
+    const currentInvites = sortedInvites.slice(
         (currentPage - 1) * ITEMS_PER_PAGE,
         currentPage * ITEMS_PER_PAGE
     )
@@ -245,14 +300,31 @@ export const InviteLoggerView = () => {
                         <table className="w-full text-left text-sm">
                             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
                                 <tr>
-                                    <th className="px-3 py-3 font-medium">Subject</th>
-                                    <th className="px-3 py-3 font-medium">Sender</th>
-                                    <th className="px-3 py-3 font-medium">Meeting Link</th>
-                                    <th className="px-3 py-3 font-medium">Method</th>
-                                    <th className="px-3 py-3 font-medium">Schedule Time</th>
-                                    <th className="px-3 py-3 font-medium">Received</th>
-                                    <th className="px-3 py-3 font-medium">Status</th>
-                                    <th className="px-3 py-3 font-medium">Email Reference</th>
+                                    {[
+                                        { key: 'subject', label: 'Subject' },
+                                        { key: 'sender', label: 'Sender' },
+                                        { key: 'meeting_link', label: 'Meeting Link' },
+                                        { key: 'detection_method', label: 'Method' },
+                                        { key: 'meeting_time', label: 'Schedule Time' },
+                                        { key: 'detection_timestamp', label: 'Received' },
+                                        { key: 'status', label: 'Status' },
+                                        { key: 'email_url', label: 'Email Reference' },
+                                    ].map((col) => (
+                                        <th
+                                            key={col.key}
+                                            className="px-3 py-3 font-medium cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                                            onClick={() => handleSort(col.key)}
+                                        >
+                                            <div className="flex items-center gap-1">
+                                                {col.label}
+                                                {sortConfig.key === col.key ? (
+                                                    sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                                                ) : (
+                                                    <ArrowUpDown size={14} className="text-slate-400 opacity-50" />
+                                                )}
+                                            </div>
+                                        </th>
+                                    ))}
                                     <th className="px-3 py-3 font-medium text-right">Actions</th>
                                 </tr>
                             </thead>
