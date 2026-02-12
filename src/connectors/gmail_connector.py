@@ -52,7 +52,7 @@ class GmailConnector:
             print(f"An error occurred during API build: {err}")
 
     def scan_emails(self, days=1):
-        """Scans emails for meeting links using 3-Layer Detection."""
+        """Scans emails for meeting links using 3-Layer Detection with pagination and batching."""
         self._cancel_scan = False
         self.authenticate()
         if not self.service_gmail:
@@ -65,71 +65,108 @@ class GmailConnector:
         query = f'after:{date_query}'
 
         try:
-            results = self.service_gmail.users().messages().list(userId='me', q=query).execute()
-            messages = results.get('messages', [])
-
-            print(f"Scanning {len(messages)} emails...")
-
-            for message in messages:
+            # Initial request with pagination
+            request = self.service_gmail.users().messages().list(userId='me', q=query, maxResults=100)
+            
+            while request is not None:
                 if self._cancel_scan:
                     print("Scan cancelled by user.")
                     break
 
-                msg = self.service_gmail.users().messages().get(userId='me', id=message['id']).execute()
+                results = request.execute()
+                messages = results.get('messages', [])
                 
-                # Metadata
-                headers = msg['payload']['headers']
-                subject = next((h['value'] for h in headers if h['name'] == 'Subject'), 'No Subject')
-                sender = next((h['value'] for h in headers if h['name'] == 'From'), 'Unknown Sender')
-                date_str = next((h['value'] for h in headers if h['name'] == 'Date'), '')
-                try:
-                    detection_timestamp = parsedate_to_datetime(date_str).isoformat()
-                except:
-                    detection_timestamp = datetime.datetime.now().isoformat()
-                
-                email_url = f"https://mail.google.com/mail/u/0/#all/{message['threadId']}"
+                if not messages:
+                    break
 
-                # --- LAYER 1: ICS Attachment Detection ---
-                if self._has_ics_attachment(msg['payload']):
-                    print(f"FOUND (Layer 1 - ICS): {subject}")
-                    # For ICS, we might not have a direct "link" to click, but the email itself is the invite.
-                    # We try to extract a link anyway for the UI, or just link to the email.
-                    body = self._get_email_body(msg['payload'])
-                    extracted_link = self._extract_best_link(body)
+                print(f"Processing {len(messages)} emails from list...")
+
+                # Process messages in smaller sub-batches to avoid Rate Limit (429)
+                batch_size = 20
+                for i in range(0, len(messages), batch_size):
+                    if self._cancel_scan:
+                        break
                     
-                    invites.append({
-                        'id': message['id'],
-                        'email_id': message['id'],
-                        'thread_id': message['threadId'],
-                        'subject': subject,
-                        'sender': sender,
-                        'email_url': email_url,
-                        'meeting_link': extracted_link or email_url, # Fallback to email URL if no specific link
-                        'meeting_time': self._extract_ics_meeting_time(msg['payload'], message['id']),
-                        'detection_timestamp': detection_timestamp,
-                        'status': 'PENDING',
-                        'detection_method': 'ICS_ATTACHMENT'
-                    })
-                    continue # Confirmed invite, move to next email
+                    sub_batch_msgs = messages[i:i + batch_size]
+                    print(f"Fetching details for batch {i//batch_size + 1} ({len(sub_batch_msgs)} emails)...")
 
-                # --- LAYER 2 & 3: Link Analysis ---
-                body = self._get_email_body(msg['payload'])
-                valid_link = self._extract_best_link(body)
+                    batch_results = []
+                    def batch_callback(request_id, response, exception):
+                        if exception:
+                            print(f"Error fetching message {request_id}: {exception}")
+                        else:
+                            batch_results.append(response)
 
-                if valid_link:
-                    print(f"FOUND (Layer 2/3 - Link): {subject}")
-                    invites.append({
-                        'id': message['id'],
-                        'email_id': message['id'],
-                        'thread_id': message['threadId'],
-                        'subject': subject,
-                        'sender': sender,
-                        'email_url': email_url,
-                        'meeting_link': valid_link,
-                        'detection_timestamp': detection_timestamp,
-                        'status': 'PENDING',
-                        'detection_method': 'LINK_PATTERN'
-                    })
+                    batch = self.service_gmail.new_batch_http_request(callback=batch_callback)
+                    
+                    for message in sub_batch_msgs:
+                        batch.add(self.service_gmail.users().messages().get(userId='me', id=message['id']))
+                    
+                    batch.execute()
+
+                    for msg in batch_results:
+                        try:
+                            # Metadata
+                            headers = msg['payload']['headers']
+                            subject = next((h['value'] for h in headers if h['name'] == 'Subject'), 'No Subject')
+                            sender = next((h['value'] for h in headers if h['name'] == 'From'), 'Unknown Sender')
+                            date_str = next((h['value'] for h in headers if h['name'] == 'Date'), '')
+                            try:
+                                detection_timestamp = parsedate_to_datetime(date_str).isoformat()
+                            except:
+                                detection_timestamp = datetime.datetime.now().isoformat()
+                            
+                            email_url = f"https://mail.google.com/mail/u/0/#all/{msg['threadId']}"
+
+                            # --- LAYER 1: ICS Attachment Detection ---
+                            if self._has_ics_attachment(msg['payload']):
+                                print(f"FOUND (Layer 1 - ICS): {subject}")
+                                body = self._get_email_body(msg['payload'])
+                                extracted_link = self._extract_best_link(body)
+                                
+                                invites.append({
+                                    'id': msg['id'],
+                                    'email_id': msg['id'],
+                                    'thread_id': msg['threadId'],
+                                    'subject': subject,
+                                    'sender': sender,
+                                    'email_url': email_url,
+                                    'meeting_link': extracted_link or email_url, # Fallback to email URL
+                                    'meeting_time': self._extract_ics_meeting_time(msg['payload'], msg['id']),
+                                    'detection_timestamp': detection_timestamp,
+                                    'status': 'PENDING',
+                                    'detection_method': 'ICS_ATTACHMENT'
+                                })
+                                continue
+
+                            # --- LAYER 2 & 3: Link Analysis ---
+                            body = self._get_email_body(msg['payload'])
+                            valid_link = self._extract_best_link(body)
+
+                            if valid_link:
+                                print(f"FOUND (Layer 2/3 - Link): {subject}")
+                                invites.append({
+                                    'id': msg['id'],
+                                    'email_id': msg['id'],
+                                    'thread_id': msg['threadId'],
+                                    'subject': subject,
+                                    'sender': sender,
+                                    'email_url': email_url,
+                                    'meeting_link': valid_link,
+                                    'detection_timestamp': detection_timestamp,
+                                    'status': 'PENDING',
+                                    'detection_method': 'LINK_PATTERN'
+                                })
+                        except Exception as e:
+                            print(f"Error processing message {msg.get('id', 'unknown')}: {e}")
+                            traceback.print_exc()
+                    
+                    # Small sleep to be nice to the API between sub-batches
+                    import time
+                    time.sleep(1)
+
+                # Get next page
+                request = self.service_gmail.users().messages().list_next(previous_request=request, previous_response=results)
 
         except HttpError as error:
             print(f"An error occurred: {error}")

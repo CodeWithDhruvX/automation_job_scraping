@@ -62,5 +62,18 @@
     "detection_timestamp": "2026-02-12T12:35:50+05:30",
     "status": "PENDING",
     "detection_method": "LINK_PATTERN"
+  },
+  {
+    "id": "19c4c27b29a5bfbf",
+    "email_id": "19c4c27b29a5bfbf",
+    "thread_id": "19c4c27b29a5bfbf",
+    "subject": "\u2709\ufe0f Walk-in interview | Java Developer in Bengaluru",
+    "sender": "Mphasis <deeksha.purwarbXBoYXNpcy5jb20=@naukri.com>",
+    "email_url": "https://mail.google.com/mail/u/0/#all/19c4c27b29a5bfbf",
+    "meeting_link": "https://mail.google.com/mail/u/0/#all/19c4c27b29a5bfbf",
+    "meeting_time": "2026-02-14T10:00:00",
+    "detection_timestamp": "2026-02-11T15:33:14+05:30",
+    "status": "IGNORED",
+    "detection_method": "ICS_ATTACHMENT"
   }
 ]
