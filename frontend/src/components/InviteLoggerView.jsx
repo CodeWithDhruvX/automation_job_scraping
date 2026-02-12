@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { Calendar, RefreshCw, Check, X, ExternalLink, Mail, Clock, Copy, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { Calendar, RefreshCw, Check, X, ExternalLink, Mail, Clock, Copy, ArrowUpDown, ArrowUp, ArrowDown, Filter } from 'lucide-react'
 
 // Configure Axios
 const api = axios.create({
@@ -21,6 +21,25 @@ export const InviteLoggerView = () => {
     const [searchTerm, setSearchTerm] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
 
+    // Column Filters State
+    const [columnFilters, setColumnFilters] = useState(() => {
+        const savedFilters = localStorage.getItem('invite_logger_filters')
+        return savedFilters ? JSON.parse(savedFilters) : {
+            subject: '',
+            sender: '',
+            meeting_link: '',
+            detection_method: '',
+            meeting_time: '',
+            detection_timestamp: '',
+            status: '',
+            email_url: ''
+        }
+    })
+
+    useEffect(() => {
+        localStorage.setItem('invite_logger_filters', JSON.stringify(columnFilters))
+    }, [columnFilters])
+
     const ITEMS_PER_PAGE = 10
     const [sortConfig, setSortConfig] = useState(() => {
         const saved = localStorage.getItem('invite_logger_sort')
@@ -31,20 +50,49 @@ export const InviteLoggerView = () => {
         localStorage.setItem('invite_logger_sort', JSON.stringify(sortConfig))
     }, [sortConfig])
 
+    const COLUMNS = useMemo(() => [
+        { key: 'subject', label: 'Subject' },
+        { key: 'sender', label: 'Sender' },
+        { key: 'meeting_link', label: 'Meeting Link' },
+        { key: 'detection_method', label: 'Method' },
+        { key: 'meeting_time', label: 'Schedule Time' },
+        { key: 'detection_timestamp', label: 'Received' },
+        { key: 'status', label: 'Status' },
+        { key: 'email_url', label: 'Email Reference' },
+    ], [])
+
     // Filter Logic
     const filteredInvites = invites.filter(invite => {
         const searchLower = searchTerm.toLowerCase()
-        const formattedDate = new Date(invite.detection_timestamp).toLocaleString().toLowerCase()
+        const formattedReceived = new Date(invite.detection_timestamp).toLocaleString().toLowerCase()
 
-        return (
-            invite.subject.toLowerCase().includes(searchLower) ||
-            invite.sender.toLowerCase().includes(searchLower) ||
-            invite.status.toLowerCase().includes(searchLower) ||
-            formattedDate.includes(searchLower)
+        // Global Search
+        const matchesGlobal = (
+            invite.subject?.toLowerCase().includes(searchLower) ||
+            invite.sender?.toLowerCase().includes(searchLower) ||
+            invite.status?.toLowerCase().includes(searchLower) ||
+            formattedReceived?.includes(searchLower)
         )
+
+        if (!matchesGlobal) return false
+
+        // Column Filters
+        return COLUMNS.every(col => {
+            const filterValue = columnFilters[col.key]?.toLowerCase()
+            if (!filterValue) return true
+
+            let cellValue = invite[col.key]
+
+            // Date Formatting for comparison
+            if (col.key === 'meeting_time' || col.key === 'detection_timestamp') {
+                if (!cellValue) return false
+                cellValue = new Date(cellValue).toLocaleString()
+            }
+
+            if (cellValue === null || cellValue === undefined) cellValue = ''
+            return String(cellValue).toLowerCase().includes(filterValue)
+        })
     })
-
-
 
     // Sorting Logic
     const handleSort = (key) => {
@@ -100,7 +148,7 @@ export const InviteLoggerView = () => {
     // Reset page when search changes
     useEffect(() => {
         setCurrentPage(1)
-    }, [searchTerm])
+    }, [searchTerm, columnFilters])
 
     useEffect(() => {
         fetchInvites()
@@ -204,6 +252,10 @@ export const InviteLoggerView = () => {
         }
     }
 
+    const handleColumnFilterChange = (key, value) => {
+        setColumnFilters(prev => ({ ...prev, [key]: value }))
+    }
+
     return (
         <div className="space-y-6">
             {/* Header / Controls */}
@@ -219,7 +271,7 @@ export const InviteLoggerView = () => {
                     <div className="mt-4">
                         <input
                             type="text"
-                            placeholder="Search invites..."
+                            placeholder="Global search..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full md:w-64 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -300,16 +352,7 @@ export const InviteLoggerView = () => {
                         <table className="w-full text-left text-sm">
                             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
                                 <tr>
-                                    {[
-                                        { key: 'subject', label: 'Subject' },
-                                        { key: 'sender', label: 'Sender' },
-                                        { key: 'meeting_link', label: 'Meeting Link' },
-                                        { key: 'detection_method', label: 'Method' },
-                                        { key: 'meeting_time', label: 'Schedule Time' },
-                                        { key: 'detection_timestamp', label: 'Received' },
-                                        { key: 'status', label: 'Status' },
-                                        { key: 'email_url', label: 'Email Reference' },
-                                    ].map((col) => (
+                                    {COLUMNS.map((col) => (
                                         <th
                                             key={col.key}
                                             className="px-3 py-3 font-medium cursor-pointer hover:bg-slate-100 transition-colors select-none"
@@ -326,6 +369,23 @@ export const InviteLoggerView = () => {
                                         </th>
                                     ))}
                                     <th className="px-3 py-3 font-medium text-right">Actions</th>
+                                </tr>
+                                <tr className="bg-slate-50 border-b border-slate-200">
+                                    {COLUMNS.map((col) => (
+                                        <th key={`filter-${col.key}`} className="px-3 py-2">
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    placeholder={`Filter...`}
+                                                    value={columnFilters[col.key]}
+                                                    onChange={(e) => handleColumnFilterChange(col.key, e.target.value)}
+                                                    className="w-full px-2 py-1 text-xs border border-slate-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-normal"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                            </div>
+                                        </th>
+                                    ))}
+                                    <th className="px-3 py-2"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
