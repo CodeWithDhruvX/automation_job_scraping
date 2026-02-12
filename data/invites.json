@@ -60,7 +60,7 @@
     "email_url": "https://mail.google.com/mail/u/0/#all/19c50abae81d4880",
     "meeting_link": "https://teams.microsoft.com/meet/42282702057979?p=SLsf2YFsMcyopKPGkA",
     "detection_timestamp": "2026-02-12T12:35:50+05:30",
-    "status": "PENDING",
+    "status": "IGNORED",
     "detection_method": "LINK_PATTERN"
   },
   {
