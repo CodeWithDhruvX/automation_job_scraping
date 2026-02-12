@@ -1,0 +1,37 @@
+﻿Starting migration to extract meeting times...
+Authenticating with Gmail...
+Total invites found: 5
+\n[1/5] Checking invite: L1 - Dhruv Shah - Java Full Stack Developer - FPG
+  ID: 19c51e7fa200268e
+  Detection method: ICS_ATTACHMENT
+  Has meeting_time: False
+\nProcessing: L1 - Dhruv Shah - Java Full Stack Developer - FPG
+  Email ID: 19c51e7fa200268e
+  WARNING: Could not extract meeting time
+\n[2/5] Checking invite: Golang developer_interview link_5pm
+  ID: 19c50abae81d4880
+  Detection method: LINK_PATTERN
+  Has meeting_time: False
+  -> SKIP: not an ICS attachment
+\n[3/5] Checking invite: Interview canceled: Thu, February 12,5:00 PM-6:00 
+  ID: 19c515b13b387f30
+  Detection method: ICS_ATTACHMENT
+  Has meeting_time: False
+\nProcessing: Interview canceled: Thu, February 12,5:00 PM-6:00 PM IST
+  Email ID: 19c515b13b387f30
+  WARNING: Could not extract meeting time
+\n[4/5] Checking invite: Encora Interview Confirmation
+  ID: 19c50d04b23c4f06
+  Detection method: ICS_ATTACHMENT
+  Has meeting_time: False
+\nProcessing: Encora Interview Confirmation
+  Email ID: 19c50d04b23c4f06
+  WARNING: Could not extract meeting time
+\n[5/5] Checking invite: Video Interview | R1 - Lloyd w/ DHRUV SHAH | Modul
+  ID: 19c50b2b9cf7d24f
+  Detection method: ICS_ATTACHMENT
+  Has meeting_time: False
+\nProcessing: Video Interview | R1 - Lloyd w/ DHRUV SHAH | Module Lead | Freespace
+  Email ID: 19c50b2b9cf7d24f
+  WARNING: Could not extract meeting time
+\nNo invites needed updating.

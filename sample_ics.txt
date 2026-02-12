@@ -1,0 +1,31 @@
+BEGIN:VCALENDAR
+METHOD:REQUEST
+PRODID:-//github.com/rianjs/ical.net//NONSGML ical.net 4.0//EN
+VERSION:2.0
+BEGIN:VEVENT
+CLASS:PUBLIC
+CREATED:20260212T071334Z
+DESCRIPTION:
+DTEND:20260213T110000Z
+DTSTAMP:20260212T071334Z
+DTSTART:20260213T100000Z
+LOCATION:https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDg3YzBjZT
+ EtMTg5Mi00MDZjLWFiNDYtZTUxYzI5YzcyNzJm%40thread.v2/0?context=%7b%22Tid%22
+ %3a%2264d58e56-1db1-49fe-bc71-0677d00bed0b%22%2c%22Oid%22%3a%223adc395d-7
+ 73c-44fd-a8d9-130753cef5be%22%7d
+ORGANIZER:mailto:vandana@afreespace.com
+PRIORITY:1
+SEQUENCE:0
+SUMMARY:Video Interview | R1 - Lloyd  w/  DHRUV SHAH |  Module Lead | Free
+ space
+TRANSP:TRANSPARENT
+UID:aaf8088f-76d0-4c69-8f90-9f6f0dc2ead9
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:
+SUMMARY:Video Interview | R1 - Lloyd  w/  DHRUV SHAH |  Module Lead | Free
+ space
+TRIGGER:-PT15M
+END:VALARM
+END:VEVENT
+END:VCALENDAR

@@ -8,7 +8,9 @@
     "meeting_link": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZmM5MmI3MmItZWFlYy00YTAzLTg1MzUtZDEyODFmMzljNWE3%40thread.v2/0?context=%7b%22Tid%22%3a%228631668b-66db-4be5-8807-d5cc6f2a806f%22%2c%22Oid%22%3a%22a19f33f3-cc91-4292-82cd-8afcd83d9693%22%7d>",
     "detection_timestamp": "2026-02-12T12:51:14+00:00",
     "status": "ADDED",
-    "thread_id": "19c51e7fa200268e"
+    "thread_id": "19c51e7fa200268e",
+    "detection_method": "ICS_ATTACHMENT",
+    "meeting_time": "2026-02-13T17:00:00"
   },
   {
     "id": "19c50d04b23c4f06",
@@ -19,7 +21,9 @@
     "meeting_link": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NDNkZmZlNGUtYTcyOC00Nzg2LTljMTYtM2Q3NTdjYzViZjI3%40thread.v2/0?context=%7b%22Tid%22%3a%221e0c92b0-f1bd-441e-bbe6-c778f9ced553%22%2c%22Oid%22%3a%22ba35be03-a00c-4856-bbdd-eef8aa919970%22%7d.",
     "detection_timestamp": "2026-02-12T07:45:53+00:00",
     "status": "PENDING",
-    "thread_id": "19c50d04b23c4f06"
+    "thread_id": "19c50d04b23c4f06",
+    "detection_method": "ICS_ATTACHMENT",
+    "meeting_time": "2026-02-12T18:00:00"
   },
   {
     "id": "19c515b13b387f30",
@@ -31,7 +35,8 @@
     "meeting_link": "https://mail.google.com/mail/u/0/#all/19c515b13b387f30",
     "detection_timestamp": "2026-02-12T10:17:27+00:00",
     "status": "PENDING",
-    "detection_method": "ICS_ATTACHMENT"
+    "detection_method": "ICS_ATTACHMENT",
+    "meeting_time": "2026-02-12T17:00:00"
   },
   {
     "id": "19c50b2b9cf7d24f",
@@ -43,7 +48,8 @@
     "meeting_link": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDg3YzBjZTEtMTg5Mi00MDZjLWFiNDYtZTUxYzI5YzcyNzJm%40thread.v2/0?context=%7b%22Tid%22%3a%2264d58e56-1db1-49fe-bc71-0677d00bed0b%22%2c%22Oid%22%3a%223adc395d-773c-44fd-a8d9-130753cef5be%22%7d'",
     "detection_timestamp": "2026-02-12T07:13:35+00:00",
     "status": "PENDING",
-    "detection_method": "ICS_ATTACHMENT"
+    "detection_method": "ICS_ATTACHMENT",
+    "meeting_time": "2026-02-13T10:00:00"
   },
   {
     "id": "19c50abae81d4880",

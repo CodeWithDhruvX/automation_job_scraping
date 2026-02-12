@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Calendar, RefreshCw, Check, X, ExternalLink, Mail, Clock } from 'lucide-react'
+import { Calendar, RefreshCw, Check, X, ExternalLink, Mail, Clock, Copy } from 'lucide-react'
 
 // Configure Axios
 const api = axios.create({
@@ -19,11 +19,18 @@ export const InviteLoggerView = () => {
     const ITEMS_PER_PAGE = 10
 
     // Filter Logic
-    const filteredInvites = invites.filter(invite =>
-        invite.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invite.sender.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invite.status.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    // Filter Logic
+    const filteredInvites = invites.filter(invite => {
+        const searchLower = searchTerm.toLowerCase()
+        const formattedDate = new Date(invite.detection_timestamp).toLocaleString().toLowerCase()
+
+        return (
+            invite.subject.toLowerCase().includes(searchLower) ||
+            invite.sender.toLowerCase().includes(searchLower) ||
+            invite.status.toLowerCase().includes(searchLower) ||
+            formattedDate.includes(searchLower)
+        )
+    })
 
     // Pagination Logic
     const totalPages = Math.ceil(filteredInvites.length / ITEMS_PER_PAGE)
@@ -190,26 +197,38 @@ export const InviteLoggerView = () => {
                         <table className="w-full text-left text-sm">
                             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
                                 <tr>
-                                    <th className="px-6 py-3 font-medium">Subject</th>
-                                    <th className="px-6 py-3 font-medium">Sender</th>
-                                    <th className="px-6 py-3 font-medium">Meeting Link</th>
-                                    <th className="px-6 py-3 font-medium">Method</th>
-                                    <th className="px-6 py-3 font-medium">Detected</th>
-                                    <th className="px-6 py-3 font-medium">Status</th>
-                                    <th className="px-6 py-3 font-medium">Email Reference</th>
-                                    <th className="px-6 py-3 font-medium text-right">Actions</th>
+                                    <th className="px-3 py-3 font-medium">Subject</th>
+                                    <th className="px-3 py-3 font-medium">Sender</th>
+                                    <th className="px-3 py-3 font-medium">Meeting Link</th>
+                                    <th className="px-3 py-3 font-medium">Method</th>
+                                    <th className="px-3 py-3 font-medium">Schedule Time</th>
+                                    <th className="px-3 py-3 font-medium">Received</th>
+                                    <th className="px-3 py-3 font-medium">Status</th>
+                                    <th className="px-3 py-3 font-medium">Email Reference</th>
+                                    <th className="px-3 py-3 font-medium text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {currentInvites.map((invite) => (
                                     <tr key={invite.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-slate-900 max-w-xs truncate" title={invite.subject}>
+                                        <td className="px-3 py-4 font-medium text-slate-900 max-w-[200px] truncate" title={invite.subject}>
                                             {invite.subject}
                                         </td>
-                                        <td className="px-6 py-4 text-slate-600 max-w-xs truncate" title={invite.sender}>
-                                            {invite.sender}
+                                        <td className="px-3 py-4 text-slate-600 max-w-[120px]">
+                                            <div className="flex items-center gap-2">
+                                                <span className="truncate" title={invite.sender}>
+                                                    {invite.sender.split('<')[0].trim()}...
+                                                </span>
+                                                <button
+                                                    onClick={() => navigator.clipboard.writeText(invite.sender)}
+                                                    className="text-slate-400 hover:text-blue-600 transition-colors"
+                                                    title="Copy Sender"
+                                                >
+                                                    <Copy size={14} />
+                                                </button>
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-3 py-4">
                                             <a
                                                 href={invite.meeting_link}
                                                 target="_blank"
@@ -220,21 +239,31 @@ export const InviteLoggerView = () => {
                                                 Link <ExternalLink size={12} />
                                             </a>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-500 text-xs font-mono">
+                                        <td className="px-3 py-4 text-slate-500 text-xs font-mono">
                                             {invite.detection_method || 'LEGACY'}
                                         </td>
-                                        <td className="px-6 py-4 text-slate-500 whitespace-nowrap">
+                                        <td className="px-3 py-4 text-slate-500 whitespace-nowrap">
+                                            {invite.meeting_time ? (
+                                                <span className="flex items-center gap-1 text-blue-600 font-medium">
+                                                    <Calendar size={14} />
+                                                    {new Date(invite.meeting_time).toLocaleString()}
+                                                </span>
+                                            ) : (
+                                                <span className="text-slate-400 text-xs italic">Not Detected</span>
+                                            )}
+                                        </td>
+                                        <td className="px-3 py-4 text-slate-500 whitespace-nowrap">
                                             <span className="flex items-center gap-1">
                                                 <Clock size={14} />
-                                                {new Date(invite.detection_timestamp).toLocaleDateString()}
+                                                {new Date(invite.detection_timestamp).toLocaleString()}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-3 py-4">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(invite.status)}`}>
                                                 {invite.status.toLowerCase()}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-3 py-4">
                                             <a
                                                 href={invite.email_url}
                                                 target="_blank"
@@ -245,7 +274,7 @@ export const InviteLoggerView = () => {
                                                 Open Email <ExternalLink size={12} />
                                             </a>
                                         </td>
-                                        <td className="px-6 py-4 text-right space-x-2">
+                                        <td className="px-3 py-4 text-right space-x-2">
                                             {invite.status === 'PENDING' && (
                                                 <>
                                                     <button

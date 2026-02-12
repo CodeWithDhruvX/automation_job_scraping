@@ -1,0 +1,16 @@
+﻿Starting migration to extract meeting times...
+Authenticating with Gmail...
+\nProcessing: L1 - Dhruv Shah - Java Full Stack Developer - FPG
+  Email ID: 19c51e7fa200268e
+  WARNING: Could not extract meeting time
+SKIP: Golang developer_interview link_5pm - not an ICS attachment
+\nProcessing: Interview canceled: Thu, February 12,5:00 PM-6:00 PM IST
+  Email ID: 19c515b13b387f30
+  WARNING: Could not extract meeting time
+\nProcessing: Encora Interview Confirmation
+  Email ID: 19c50d04b23c4f06
+  WARNING: Could not extract meeting time
+\nProcessing: Video Interview | R1 - Lloyd w/ DHRUV SHAH | Module Lead | Freespace
+  Email ID: 19c50b2b9cf7d24f
+  WARNING: Could not extract meeting time
+\nNo invites needed updating.

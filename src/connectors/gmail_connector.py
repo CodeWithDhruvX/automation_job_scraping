@@ -105,6 +105,7 @@ class GmailConnector:
                         'sender': sender,
                         'email_url': email_url,
                         'meeting_link': extracted_link or email_url, # Fallback to email URL if no specific link
+                        'meeting_time': self._extract_ics_meeting_time(msg['payload'], message['id']),
                         'detection_timestamp': detection_timestamp,
                         'status': 'PENDING',
                         'detection_method': 'ICS_ATTACHMENT'
@@ -259,3 +260,100 @@ class GmailConnector:
         except HttpError as error:
             print(f"An error occurred: {error}")
             return {"error": str(error)}
+
+    def _get_ics_content_recursive(self, payload, message_id=None):
+        """Recursively finds and decodes text/calendar content."""
+        if payload.get('mimeType') == 'text/calendar':
+            body = payload.get('body', {})
+            
+            # Check for inline data first
+            data = body.get('data')
+            if data:
+                try:
+                    return base64.urlsafe_b64decode(data).decode()
+                except Exception as e:
+                    print(f"Error decoding inline ICS data: {e}")
+            
+            # Check for attachment
+            attachment_id = body.get('attachmentId')
+            if attachment_id and message_id and self.service_gmail:
+                try:
+                    print(f"DEBUG: Fetching ICS attachment with ID: {attachment_id[:50]}...")
+                    attachment = self.service_gmail.users().messages().attachments().get(
+                        userId='me',
+                        messageId=message_id,
+                        id=attachment_id
+                    ).execute()
+                    
+                    data = attachment.get('data')
+                    if data:
+                        content = base64.urlsafe_b64decode(data).decode()
+                        print(f"DEBUG: Successfully fetched ICS attachment ({len(content)} chars)")
+                        return content
+                except Exception as e:
+                    print(f"Error fetching ICS attachment: {e}")
+                    import traceback
+                    traceback.print_exc()
+        
+        if 'parts' in payload:
+            for part in payload['parts']:
+                content = self._get_ics_content_recursive(part, message_id)
+                if content:
+                    return content
+        return None
+
+    def _extract_ics_meeting_time(self, payload, message_id=None):
+        """Extracts DTSTART from ICS attachment."""
+        try:
+            content = self._get_ics_content_recursive(payload, message_id)
+            
+            if content:
+                # Debug print
+                print(f"DEBUG: ICS Content found, checking for DTSTART...")
+                
+                # Strategy: Extract only DTSTART within VEVENT section to avoid timezone definitions
+                # Split content by BEGIN:VEVENT and END:VEVENT to isolate the actual event
+                vevent_match = re.search(r'BEGIN:VEVENT(.*?)END:VEVENT', content, re.DOTALL)
+                
+                if not vevent_match:
+                    print(f"DEBUG: No VEVENT section found in ICS")
+                    return None
+                
+                vevent_content = vevent_match.group(1)
+                print(f"DEBUG: VEVENT section length: {len(vevent_content)} chars")
+                
+                # Regex for DTSTART within VEVENT
+                # Supports:
+                # DTSTART:20231027T100000Z
+                # DTSTART;TZID=...:20231027T100000
+                # DTSTART;VALUE=DATE:20231027
+                
+                # Strategy: Look for DTSTART with optional parameters, then mandatory colon, then date/time
+                match = re.search(r'DTSTART(?:;[^:\n]*)?:(\d{8})(?:T(\d{6})Z?)?', vevent_content)
+                
+                if match:
+                    date_part = match.group(1)
+                    time_part = match.group(2)
+                    
+                    print(f"DEBUG: Found DTSTART - Date: {date_part}, Time: {time_part}")
+                    
+                    try:
+                        if time_part:
+                            dt = datetime.datetime.strptime(f"{date_part}T{time_part}", "%Y%m%dT%H%M%S")
+                        else:
+                            # Date only
+                            dt = datetime.datetime.strptime(date_part, "%Y%m%d")
+                        
+                        print(f"DEBUG: Parsed datetime: {dt.isoformat()}")
+                        return dt.isoformat()
+                    except ValueError as e:
+                        print(f"Error parsing date string {date_part}T{time_part}: {e}")
+                        return None
+                else:
+                    print(f"DEBUG: No DTSTART match found in VEVENT section")
+        except Exception as e:
+            print(f"Error extracting ICS time: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+        return None

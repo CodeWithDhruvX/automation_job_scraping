@@ -1,0 +1,115 @@
+BEGIN:VCALENDAR
+METHOD:REQUEST
+PRODID:Microsoft Exchange Server 2010
+VERSION:2.0
+BEGIN:VTIMEZONE
+TZID:India Standard Time
+BEGIN:STANDARD
+DTSTART:16010101T000000
+TZOFFSETFROM:+0530
+TZOFFSETTO:+0530
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:16010101T000000
+TZOFFSETFROM:+0530
+TZOFFSETTO:+0530
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+ORGANIZER;CN=Pralina Jena:mailto:pralina.jena@hirexa.com
+ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=Hemali Dad
+ haniya:mailto:hdadhaniya@in-gauge.io
+ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=Serena Vie
+ go:mailto:sviego@frontlinepg.com
+ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=dhruvshahl
+ inkedin@gmail.com:mailto:dhruvshahlinkedin@gmail.com
+ATTACH:CID:49DB8A6E91A66A4187EE8C92D84FA022@INDP287.PROD.OUTLOOK.COM
+DESCRIPTION;LANGUAGE=en-US:\n______________________________________________
+ __________________________________\nMicrosoft Teams meeting\nJoin: https:/
+ /teams.microsoft.com/meet/47778425239393?p=F97840AaotoZ3JAuOC\nMeeting ID:
+  477 784 252 393 93\nPasscode: SB6dM2kM\n________________________________\
+ nNeed help?<https://aka.ms/JoinTeamsMeeting?omkt=en-US> | System reference
+ <https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZmM5MmI3MmItZWFlYy
+ 00YTAzLTg1MzUtZDEyODFmMzljNWE3%40thread.v2/0?context=%7b%22Tid%22%3a%22863
+ 1668b-66db-4be5-8807-d5cc6f2a806f%22%2c%22Oid%22%3a%22a19f33f3-cc91-4292-8
+ 2cd-8afcd83d9693%22%7d>\nFor organizers: Meeting options<https://teams.mic
+ rosoft.com/meetingOptions/?organizerId=a19f33f3-cc91-4292-82cd-8afcd83d969
+ 3&tenantId=8631668b-66db-4be5-8807-d5cc6f2a806f&threadId=19_meeting_ZmM5Mm
+ I3MmItZWFlYy00YTAzLTg1MzUtZDEyODFmMzljNWE3@thread.v2&messageId=0&language=
+ en-US>\n__________________________________________________________________
+ ______________\n\n::DISCLAIMER:: -----------------------------------------
+ --------------------------------------------------------------------------
+ --------------------------------------------------------------------------
+ --------------------------------------------------------------------------
+ --------------------------------------------------------------------------
+ --------------------------------------------------------------------------
+ --- The contents of this e-mail and any attachment(s) are confidential and
+  intended for the named recipient(s) only. E-mail transmission is not guar
+ anteed to be secure or error-free as information could be intercepted\, co
+ rrupted\, lost\, destroyed\, arrive late or incomplete\, or may contain vi
+ ruses in transmission. The e mail and its contents (with or without referr
+ ed errors) shall therefore not attach any liability on the originator or H
+ IREXA or its affiliates. Views or opinions\, if any\, presented in this em
+ ail are solely those of the author and may not necessarily reflect the vie
+ ws or opinions of HIREXA or its affiliates. Any form of reproduction\, dis
+ semination\, copying\, disclosure\, modification\, distribution and / or p
+ ublication of this message without the prior written consent of authorized
+  representative of HIREXA is strictly prohibited. If you have received thi
+ s email in error\, please delete it and notify the sender immediately. Bef
+ ore opening any email and/or attachments\, please check them for viruses a
+ nd other defects. All the data are stored as per <a href="https://hirexa.c
+ om/privacy-policy/ -------------------------------------------------------
+ --------------------------------------------------------------------------
+ --------------------------------------------------------------------------
+ --------------------------------------------------------------------------
+ --------------------------------------------------------------------------
+ ---------------------------------------------------------------\n
+UID:040000008200E00074C5B7101A82E00800000000A48213121E9CDC01000000000000000
+ 0100000000458C54CA886E64EA988CBFFD535AD22
+SUMMARY;LANGUAGE=en-US:L1 - Dhruv Shah - Java Full Stack Developer - FPG
+DTSTART;TZID=India Standard Time:20260213T170000
+DTEND;TZID=India Standard Time:20260213T180000
+CLASS:PUBLIC
+PRIORITY:5
+DTSTAMP:20260212T125114Z
+TRANSP:OPAQUE
+STATUS:CONFIRMED
+SEQUENCE:0
+LOCATION;LANGUAGE=en-US:Microsoft Teams Meeting
+X-MICROSOFT-CDO-APPT-SEQUENCE:0
+X-MICROSOFT-CDO-OWNERAPPTID:2124572533
+X-MICROSOFT-CDO-BUSYSTATUS:TENTATIVE
+X-MICROSOFT-CDO-INTENDEDSTATUS:BUSY
+X-MICROSOFT-CDO-ALLDAYEVENT:FALSE
+X-MICROSOFT-CDO-IMPORTANCE:1
+X-MICROSOFT-CDO-INSTTYPE:0
+X-MICROSOFT-ONLINEMEETINGINFORMATION:{"OnlineMeetingChannelId":null\,"Onlin
+ eMeetingProvider":3}
+X-MICROSOFT-SKYPETEAMSMEETINGURL:https://teams.microsoft.com/l/meetup-join/
+ 19%3ameeting_ZmM5MmI3MmItZWFlYy00YTAzLTg1MzUtZDEyODFmMzljNWE3%40thread.v2/
+ 0?context=%7b%22Tid%22%3a%228631668b-66db-4be5-8807-d5cc6f2a806f%22%2c%22O
+ id%22%3a%22a19f33f3-cc91-4292-82cd-8afcd83d9693%22%7d
+X-MICROSOFT-SCHEDULINGSERVICEUPDATEURL:https://api.scheduler.teams.microsof
+ t.com/teams/8631668b-66db-4be5-8807-d5cc6f2a806f/a19f33f3-cc91-4292-82cd-8
+ afcd83d9693/19_meeting_ZmM5MmI3MmItZWFlYy00YTAzLTg1MzUtZDEyODFmMzljNWE3@th
+ read.v2/0
+X-MICROSOFT-SKYPETEAMSPROPERTIES:{"cid":"19:meeting_ZmM5MmI3MmItZWFlYy00YTA
+ zLTg1MzUtZDEyODFmMzljNWE3@thread.v2"\,"rid":0\,"mid":0\,"uid":null\,"priva
+ te":true\,"type":0}
+X-MICROSOFT-DONOTFORWARDMEETING:FALSE
+X-MICROSOFT-DISALLOW-COUNTER:FALSE
+X-MICROSOFT-REQUESTEDATTENDANCEMODE:DEFAULT
+X-MICROSOFT-ISRESPONSEREQUESTED:TRUE
+X-MICROSOFT-LOCATIONDISPLAYNAME:Microsoft Teams Meeting
+X-MICROSOFT-LOCATIONSOURCE:None
+X-MICROSOFT-LOCATIONS:[{"DisplayName":"Microsoft Teams Meeting"\,"LocationA
+ nnotation":""\,"LocationUri":""\,"LocationStreet":""\,"LocationCity":""\,"
+ LocationState":""\,"LocationCountry":""\,"LocationPostalCode":""\,"Locatio
+ nFullAddress":""}]
+BEGIN:VALARM
+DESCRIPTION:REMINDER
+TRIGGER;RELATED=START:-PT15M
+ACTION:DISPLAY
+END:VALARM
+END:VEVENT
+END:VCALENDAR

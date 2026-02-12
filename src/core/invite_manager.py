@@ -49,11 +49,26 @@ class InviteManager:
             self.save_data()
             return True
         else:
-            # Update metadata for existing invites (e.g. better URL)
+            # Update metadata for existing invites
             current = self.invites[invite_id]
+            updated = False
+            
             if invite_data.get('email_url') != current.get('email_url'):
                 current['email_url'] = invite_data.get('email_url')
                 current['thread_id'] = invite_data.get('thread_id')
+                updated = True
+            
+            # Update meeting_time if it was missing or different
+            if invite_data.get('meeting_time') and invite_data.get('meeting_time') != current.get('meeting_time'):
+                current['meeting_time'] = invite_data.get('meeting_time')
+                updated = True
+                
+            # Update detection method if we found a better one (e.g. upgrading from LEGACY to ICS)
+            if invite_data.get('detection_method') != current.get('detection_method'):
+                current['detection_method'] = invite_data.get('detection_method')
+                updated = True
+
+            if updated:
                 self.save_data()
         return False
     
