@@ -51,7 +51,7 @@ class GmailConnector:
         except HttpError as err:
             print(f"An error occurred during API build: {err}")
 
-    def scan_emails(self, days=1):
+    def scan_emails(self, days=1, start_date=None, end_date=None):
         """Scans emails for meeting links using 3-Layer Detection with pagination and batching."""
         self._cancel_scan = False
         self.authenticate()
@@ -61,8 +61,31 @@ class GmailConnector:
 
         invites = []
         
-        date_query = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y/%m/%d")
-        query = f'after:{date_query}'
+        # Determine date query
+        if start_date and end_date:
+            # Custom Range
+            # Ensure proper formatting if needed, assuming YYYY/MM/DD or YYYY-MM-DD
+            # Gmail expects YYYY/MM/DD
+            s_date = start_date.replace('-', '/')
+            e_date = end_date.replace('-', '/')
+            
+            # For end date inclusivity, we might need to add 1 day if the user expects inclusive
+            # But relying on caller to provide correct 'before' date usually safer, 
+            # however for a UI date picker, it usually gives "Jan 5". Gmail 'before:Jan 5' excludes Jan 5.
+            # So we should probably increment end_date by 1 day.
+            try:
+                e_dt = datetime.datetime.strptime(e_date, "%Y/%m/%d")
+                e_dt_plus_1 = e_dt + datetime.timedelta(days=1)
+                e_date_query = e_dt_plus_1.strftime("%Y/%m/%d")
+            except:
+                 e_date_query = e_date # Fallback if parsing fails
+
+            query = f'after:{s_date} before:{e_date_query}'
+            print(f"Scanning with Custom Range: {query}")
+        else:
+            # Default "Last X Days"
+            date_query = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y/%m/%d")
+            query = f'after:{date_query}'
 
         try:
             # Initial request with pagination

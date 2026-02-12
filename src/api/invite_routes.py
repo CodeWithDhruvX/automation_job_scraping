@@ -17,6 +17,8 @@ gmail_connector = GmailConnector()
 
 class ScanRequest(BaseModel):
     days: int = 1
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
 
 class InviteStatusUpdate(BaseModel):
     status: str
@@ -25,7 +27,7 @@ class InviteStatusUpdate(BaseModel):
 def scan_invites(req: ScanRequest):
     """Triggers an email scan for invites."""
     try:
-        invites = gmail_connector.scan_emails(days=req.days)
+        invites = gmail_connector.scan_emails(days=req.days, start_date=req.start_date, end_date=req.end_date)
         new_count = invite_manager.add_invites(invites)
         if gmail_connector._cancel_scan:
              return {"status": "cancelled", "found": len(invites), "new": new_count, "invites": invites}

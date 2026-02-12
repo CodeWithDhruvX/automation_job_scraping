@@ -7,18 +7,21 @@ const api = axios.create({
     baseURL: 'http://localhost:8000/api'
 })
 
+import Flatpickr from "react-flatpickr";
+import "flatpickr/dist/themes/airbnb.css"; // Using Airbnb theme for a premium feel
+
 export const InviteLoggerView = () => {
     const [invites, setInvites] = useState([])
     const [loading, setLoading] = useState(false)
     const [scanning, setScanning] = useState(false)
     const [scanDays, setScanDays] = useState(1)
+    const [dateRange, setDateRange] = useState([new Date(), new Date()]) // Custom Range State
 
     // Search & Pagination State
     const [searchTerm, setSearchTerm] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
     const ITEMS_PER_PAGE = 10
 
-    // Filter Logic
     // Filter Logic
     const filteredInvites = invites.filter(invite => {
         const searchLower = searchTerm.toLowerCase()
@@ -63,7 +66,32 @@ export const InviteLoggerView = () => {
     const handleScan = async () => {
         setScanning(true)
         try {
-            const res = await api.post('/invites/scan', { days: parseInt(scanDays) })
+            let payload = {}
+
+            if (scanDays === 'custom') {
+                if (!dateRange || dateRange.length < 2 || !dateRange[0] || !dateRange[1]) {
+                    alert("Please select a complete date range (Start & End).")
+                    setScanning(false)
+                    return
+                }
+
+                // Format dates as YYYY-MM-DD to avoid timezone issues
+                const formatDate = (date) => {
+                    const offset = date.getTimezoneOffset()
+                    const d = new Date(date.getTime() - (offset * 60 * 1000))
+                    return d.toISOString().split('T')[0]
+                }
+
+                payload = {
+                    days: 0, // Ignored by backend if dates provided
+                    start_date: formatDate(dateRange[0]),
+                    end_date: formatDate(dateRange[1])
+                }
+            } else {
+                payload = { days: parseInt(scanDays) }
+            }
+
+            const res = await api.post('/invites/scan', payload)
             if (res.data.status === 'cancelled') {
                 alert(`Scan cancelled. Found ${res.data.found} invites so far.`)
             } else {
@@ -144,20 +172,40 @@ export const InviteLoggerView = () => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                    <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                        Scan last
+                <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-lg border border-slate-100 flex-wrap">
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-slate-700 whitespace-nowrap">
+                            Scan:
+                        </label>
                         <select
                             value={scanDays}
                             onChange={(e) => setScanDays(e.target.value)}
                             className="border-slate-300 rounded-md text-sm py-1 px-2 focus:ring-blue-500 focus:border-blue-500"
                         >
-                            <option value="1">24 Hours</option>
-                            <option value="2">2 Days</option>
-                            <option value="3">3 Days</option>
-                            <option value="5">5 Days</option>
+                            <option value="1">Last 24 Hours</option>
+                            <option value="2">Last 2 Days</option>
+                            <option value="3">Last 3 Days</option>
+                            <option value="5">Last 5 Days</option>
+                            <option value="custom">Custom Range</option>
                         </select>
-                    </label>
+                    </div>
+
+                    {scanDays === 'custom' && (
+                        <div className="relative animate-in fade-in zoom-in duration-200">
+                            <Flatpickr
+                                options={{
+                                    mode: "range",
+                                    dateFormat: "Y-m-d",
+                                    maxDate: "today",
+                                    showMonths: 2
+                                }}
+                                value={dateRange}
+                                onChange={(update) => setDateRange(update)}
+                                className="border border-slate-300 rounded-md text-sm py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 w-60 shadow-sm"
+                                placeholder="Select Date Range..."
+                            />
+                        </div>
+                    )}
 
                     <button
                         onClick={handleScan}
@@ -168,7 +216,7 @@ export const InviteLoggerView = () => {
             `}
                     >
                         <RefreshCw size={16} className={scanning ? "animate-spin" : ""} />
-                        {scanning ? "Scanning..." : "Scan Emails"}
+                        {scanning ? "Scanning..." : "Scan"}
                     </button>
 
                     {scanning && (
