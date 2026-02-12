@@ -19,6 +19,7 @@ from src.api.auth_routes import router as auth_router
 from src.api.reminder_routes import router as reminder_router
 from src.api.util_routes import router as util_router
 from src.connectors.jobspy_connector import JobSpyConnector
+from src.api.invite_routes import router as invite_router
 
 app = FastAPI(title="Job Application Assistant API")
 
@@ -34,6 +35,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(reminder_router)
 app.include_router(util_router)
+app.include_router(invite_router)
 
 job_manager = JobManager()
 

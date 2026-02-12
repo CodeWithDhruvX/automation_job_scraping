@@ -1,0 +1,60 @@
+[
+  {
+    "id": "19c51e7fa200268e",
+    "email_id": "19c51e7fa200268e",
+    "subject": "L1 - Dhruv Shah - Java Full Stack Developer - FPG",
+    "sender": "Pralina Jena <pralina.jena@hirexa.com>",
+    "email_url": "https://mail.google.com/mail/u/0/#all/19c51e7fa200268e",
+    "meeting_link": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZmM5MmI3MmItZWFlYy00YTAzLTg1MzUtZDEyODFmMzljNWE3%40thread.v2/0?context=%7b%22Tid%22%3a%228631668b-66db-4be5-8807-d5cc6f2a806f%22%2c%22Oid%22%3a%22a19f33f3-cc91-4292-82cd-8afcd83d9693%22%7d>",
+    "detection_timestamp": "2026-02-12T12:51:14+00:00",
+    "status": "ADDED",
+    "thread_id": "19c51e7fa200268e"
+  },
+  {
+    "id": "19c50d04b23c4f06",
+    "email_id": "19c50d04b23c4f06",
+    "subject": "Encora Interview Confirmation",
+    "sender": "Ajitesh Mishra <ajitesh.mishra@encora.com>",
+    "email_url": "https://mail.google.com/mail/u/0/#all/19c50d04b23c4f06",
+    "meeting_link": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NDNkZmZlNGUtYTcyOC00Nzg2LTljMTYtM2Q3NTdjYzViZjI3%40thread.v2/0?context=%7b%22Tid%22%3a%221e0c92b0-f1bd-441e-bbe6-c778f9ced553%22%2c%22Oid%22%3a%22ba35be03-a00c-4856-bbdd-eef8aa919970%22%7d.",
+    "detection_timestamp": "2026-02-12T07:45:53+00:00",
+    "status": "PENDING",
+    "thread_id": "19c50d04b23c4f06"
+  },
+  {
+    "id": "19c515b13b387f30",
+    "email_id": "19c515b13b387f30",
+    "thread_id": "19c515b13b387f30",
+    "subject": "Interview canceled: Thu, February 12,5:00 PM-6:00 PM IST",
+    "sender": "Akshita Rai <admin@ripplehire.com>",
+    "email_url": "https://mail.google.com/mail/u/0/#all/19c515b13b387f30",
+    "meeting_link": "https://mail.google.com/mail/u/0/#all/19c515b13b387f30",
+    "detection_timestamp": "2026-02-12T10:17:27+00:00",
+    "status": "PENDING",
+    "detection_method": "ICS_ATTACHMENT"
+  },
+  {
+    "id": "19c50b2b9cf7d24f",
+    "email_id": "19c50b2b9cf7d24f",
+    "thread_id": "19c50b2b9cf7d24f",
+    "subject": "Video Interview | R1 - Lloyd w/ DHRUV SHAH | Module Lead | Freespace",
+    "sender": "Freespace Hiring Team <no-reply@kekamail.com>",
+    "email_url": "https://mail.google.com/mail/u/0/#all/19c50b2b9cf7d24f",
+    "meeting_link": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDg3YzBjZTEtMTg5Mi00MDZjLWFiNDYtZTUxYzI5YzcyNzJm%40thread.v2/0?context=%7b%22Tid%22%3a%2264d58e56-1db1-49fe-bc71-0677d00bed0b%22%2c%22Oid%22%3a%223adc395d-773c-44fd-a8d9-130753cef5be%22%7d'",
+    "detection_timestamp": "2026-02-12T07:13:35+00:00",
+    "status": "PENDING",
+    "detection_method": "ICS_ATTACHMENT"
+  },
+  {
+    "id": "19c50abae81d4880",
+    "email_id": "19c50abae81d4880",
+    "thread_id": "19c50abae81d4880",
+    "subject": "Golang developer_interview link_5pm",
+    "sender": "Vengali Soujanya <vengalis@intellicsglobal.com>",
+    "email_url": "https://mail.google.com/mail/u/0/#all/19c50abae81d4880",
+    "meeting_link": "https://teams.microsoft.com/meet/42282702057979?p=SLsf2YFsMcyopKPGkA",
+    "detection_timestamp": "2026-02-12T12:35:50+05:30",
+    "status": "PENDING",
+    "detection_method": "LINK_PATTERN"
+  }
+]

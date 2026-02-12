@@ -9,7 +9,8 @@ import { SmartTabView } from './components/SmartTabView'
 import { SmartTabModal } from './components/SmartTabModal'
 import { RejectedJobsView } from './components/RejectedJobsView'
 import GoogleRemindersView from './components/GoogleRemindersView'
-import { LayoutDashboard, RefreshCw, Trash2, X, Download, ExternalLink, Settings, Upload, Sparkles, Calendar } from 'lucide-react'
+import { InviteLoggerView } from './components/InviteLoggerView'
+import { LayoutDashboard, RefreshCw, Trash2, X, Download, ExternalLink, Settings, Upload, Sparkles, Calendar, Mail } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 // Configure Axios base URL
@@ -30,6 +31,7 @@ function App() {
   const [showAppliedJobsView, setShowAppliedJobsView] = useState(false)
   const [showRejectedJobsView, setShowRejectedJobsView] = useState(false)
   const [showGoogleRemindersView, setShowGoogleRemindersView] = useState(false)
+  const [showInviteLoggerView, setShowInviteLoggerView] = useState(false)
 
   // Smart Tab State
   const [showSmartTabView, setShowSmartTabView] = useState(false)
@@ -106,6 +108,8 @@ function App() {
       setShowRejectedJobsView(true)
     } else if (window.location.hash === '#google-reminders') {
       setShowGoogleRemindersView(true)
+    } else if (window.location.hash === '#invite-logger') {
+      setShowInviteLoggerView(true)
     }
   }, [])
 
@@ -130,11 +134,19 @@ function App() {
         setShowAppliedJobsView(false)
         setShowSmartTabView(false)
         setShowRejectedJobsView(false)
+        setShowInviteLoggerView(false)
+      } else if (window.location.hash === '#invite-logger') {
+        setShowInviteLoggerView(true)
+        setShowAppliedJobsView(false)
+        setShowSmartTabView(false)
+        setShowRejectedJobsView(false)
+        setShowGoogleRemindersView(false)
       } else {
         setShowAppliedJobsView(false)
         setShowSmartTabView(false)
         setShowRejectedJobsView(false)
         setShowGoogleRemindersView(false)
+        setShowInviteLoggerView(false)
       }
     }
 
@@ -604,6 +616,38 @@ function App() {
     })
   }
 
+  if (showInviteLoggerView) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+        <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.hash = ''}>
+            {/* Back to Dashboard */}
+            <div className="bg-blue-600 p-2 rounded-lg text-white">
+              <LayoutDashboard size={20} />
+            </div>
+            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+              JobSpy Dashboard
+            </h1>
+          </div>
+          {/* Simple Close Button */}
+          <button
+            onClick={() => {
+              window.location.hash = ''
+              setShowInviteLoggerView(false)
+            }}
+            className="p-2 hover:bg-slate-100 rounded-full"
+          >
+            <X size={24} />
+          </button>
+        </header>
+
+        <main className="p-6 mx-auto max-w-6xl">
+          <InviteLoggerView />
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
@@ -639,6 +683,18 @@ function App() {
               Open Selected ({selectedJobUrls.length})
             </button>
           )}
+
+          <button
+            onClick={() => {
+              window.location.hash = 'invite-logger'
+              setShowInviteLoggerView(true)
+            }}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors shadow-sm"
+          >
+            <Mail size={16} />
+            Invite Logger
+          </button>
+
           <button
             onClick={() => {
               window.location.hash = 'google-reminders'
