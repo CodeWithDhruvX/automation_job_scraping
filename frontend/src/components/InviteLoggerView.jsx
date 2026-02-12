@@ -13,6 +13,30 @@ export const InviteLoggerView = () => {
     const [scanning, setScanning] = useState(false)
     const [scanDays, setScanDays] = useState(1)
 
+    // Search & Pagination State
+    const [searchTerm, setSearchTerm] = useState("")
+    const [currentPage, setCurrentPage] = useState(1)
+    const ITEMS_PER_PAGE = 10
+
+    // Filter Logic
+    const filteredInvites = invites.filter(invite =>
+        invite.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        invite.sender.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        invite.status.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    // Pagination Logic
+    const totalPages = Math.ceil(filteredInvites.length / ITEMS_PER_PAGE)
+    const currentInvites = filteredInvites.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    )
+
+    // Reset page when search changes
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [searchTerm])
+
     useEffect(() => {
         fetchInvites()
     }, [])
@@ -100,6 +124,17 @@ export const InviteLoggerView = () => {
                         Invite Logger
                     </h2>
                     <p className="text-slate-500 text-sm mt-1">Scan emails for meeting invites and add them to your calendar.</p>
+
+                    {/* Search Bar */}
+                    <div className="mt-4">
+                        <input
+                            type="text"
+                            placeholder="Search invites..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full md:w-64 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-lg border border-slate-100">
@@ -166,7 +201,7 @@ export const InviteLoggerView = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {invites.map((invite) => (
+                                {currentInvites.map((invite) => (
                                     <tr key={invite.id} className="hover:bg-slate-50 transition-colors">
                                         <td className="px-6 py-4 font-medium text-slate-900 max-w-xs truncate" title={invite.subject}>
                                             {invite.subject}
@@ -237,6 +272,29 @@ export const InviteLoggerView = () => {
                     </div>
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {filteredInvites.length > 0 && (
+                <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Previous
+                    </button>
+                    <span className="text-sm text-slate-600">
+                        Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Next
+                    </button>
+                </div>
+            )}
         </div>
     )
 }

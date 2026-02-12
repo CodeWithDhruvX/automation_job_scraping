@@ -641,7 +641,7 @@ function App() {
           </button>
         </header>
 
-        <main className="p-6 mx-auto max-w-6xl">
+        <main className="p-6 mx-auto max-w-full">
           <InviteLoggerView />
         </main>
       </div>
