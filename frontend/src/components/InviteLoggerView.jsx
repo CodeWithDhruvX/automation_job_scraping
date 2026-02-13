@@ -98,7 +98,9 @@ export const InviteLoggerView = () => {
 
     const COLUMNS = useMemo(() => [
         { key: 'subject', label: 'Subject' },
+        { key: 'company', label: 'Company' },
         { key: 'sender', label: 'Sender' },
+        { key: 'source', label: 'Source' },
         { key: 'meeting_link', label: 'Meeting Link' },
         { key: 'detection_method', label: 'Method' },
         { key: 'meeting_time', label: 'Schedule Time' },
@@ -472,7 +474,7 @@ export const InviteLoggerView = () => {
                                                 <input
                                                     type="text"
                                                     placeholder={`Filter...`}
-                                                    value={columnFilters[col.key]}
+                                                    value={columnFilters[col.key] || ''}
                                                     onChange={(e) => handleColumnFilterChange(col.key, e.target.value)}
                                                     className="w-full pl-2 pr-6 py-1 text-xs border border-slate-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-normal"
                                                     onClick={(e) => e.stopPropagation()}
@@ -511,6 +513,9 @@ export const InviteLoggerView = () => {
                                         <td className="px-3 py-4 font-medium text-slate-900 max-w-[200px] truncate" title={invite.subject}>
                                             {invite.subject}
                                         </td>
+                                        <td className="px-3 py-4 font-medium text-slate-700">
+                                            {invite.company || '-'}
+                                        </td>
                                         <td className="px-3 py-4 text-slate-600 max-w-[120px]">
                                             <div className="flex items-center gap-2">
                                                 <span className="truncate" title={invite.sender}>
@@ -524,6 +529,14 @@ export const InviteLoggerView = () => {
                                                     <Copy size={14} />
                                                 </button>
                                             </div>
+                                        </td>
+                                        <td className="px-3 py-4 text-slate-600">
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${invite.source === 'LinkedIn' ? 'bg-blue-50 text-blue-700' :
+                                                invite.source === 'Naukri' ? 'bg-yellow-50 text-yellow-700' :
+                                                    'bg-slate-100 text-slate-600'
+                                                }`}>
+                                                {invite.source || 'Email'}
+                                            </span>
                                         </td>
                                         <td className="px-3 py-4">
                                             <a
@@ -541,19 +554,37 @@ export const InviteLoggerView = () => {
                                         </td>
                                         <td className="px-3 py-4 text-slate-500 whitespace-nowrap">
                                             {invite.meeting_time ? (
-                                                <span className="flex items-center gap-1 text-blue-600 font-medium">
-                                                    <Calendar size={14} />
-                                                    {new Date(invite.meeting_time).toLocaleString()}
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="flex items-center gap-1 text-blue-600 font-medium">
+                                                        <Calendar size={14} />
+                                                        {new Date(invite.meeting_time).toLocaleString()}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => navigator.clipboard.writeText(new Date(invite.meeting_time).toLocaleDateString())}
+                                                        className="text-slate-400 hover:text-blue-600 transition-colors"
+                                                        title="Copy Date"
+                                                    >
+                                                        <Copy size={14} />
+                                                    </button>
+                                                </div>
                                             ) : (
                                                 <span className="text-slate-400 text-xs italic">Not Detected</span>
                                             )}
                                         </td>
                                         <td className="px-3 py-4 text-slate-500 whitespace-nowrap">
-                                            <span className="flex items-center gap-1">
-                                                <Clock size={14} />
-                                                {new Date(invite.detection_timestamp).toLocaleString()}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="flex items-center gap-1">
+                                                    <Clock size={14} />
+                                                    {new Date(invite.detection_timestamp).toLocaleString()}
+                                                </span>
+                                                <button
+                                                    onClick={() => navigator.clipboard.writeText(new Date(invite.detection_timestamp).toLocaleDateString())}
+                                                    className="text-slate-400 hover:text-blue-600 transition-colors"
+                                                    title="Copy Date"
+                                                >
+                                                    <Copy size={14} />
+                                                </button>
+                                            </div>
                                         </td>
                                         <td className="px-3 py-4">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(invite.status)}`}>

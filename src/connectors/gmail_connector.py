@@ -11,6 +11,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from email.utils import parsedate_to_datetime
+from src.core.recruiter_analyzer import RecruiterAnalyzer
 
 # If modifying these scopes, delete the token files.
 SCOPES = [
@@ -38,6 +39,8 @@ class GmailConnector:
                 # If tokens exist, maybe rename/archive legacy token so we don't check it again?
                 # Or just ignore it.
                 pass
+        
+        self.recruiter_analyzer = RecruiterAnalyzer()
 
     def _migrate_legacy_token(self):
         """Migrates the legacy token.json to the new tokens directory structure."""
@@ -277,6 +280,28 @@ class GmailConnector:
                                     'detection_timestamp': detection_timestamp,
                                     'status': 'PENDING',
                                     'detection_method': 'LINK_PATTERN'
+                                })
+                                continue # Prioritize Link over Recruiter check
+                            
+                            # Fallback: Check if it's a recruiter email
+                            recruiter_check = self.recruiter_analyzer.analyze_email(sender, subject, body)
+                            if recruiter_check['is_recruiter']:
+                                print(f"[{email_address}] FOUND (Recruiter): {subject} (Score: {recruiter_check['score']})")
+                                invites.append({
+                                    'id': msg['id'],
+                                    'account_email': email_address,
+                                    'email_id': msg['id'],
+                                    'thread_id': msg['threadId'],
+                                    'subject': subject,
+                                    'sender': sender,
+                                    'email_url': email_url,
+                                    'meeting_link': email_url, # Fallback to email itself if no meeting link
+                                    'detection_timestamp': detection_timestamp,
+                                    'status': 'PENDING',
+                                    'detection_method': 'RECRUITER_PATTERN',
+                                    'reasons': recruiter_check['reasons'],
+                                    'source': recruiter_check['source'],
+                                    'company': recruiter_check['company']
                                 })
                         except Exception as e:
                             print(f"Error processing message {msg.get('id', 'unknown')}: {e}")
