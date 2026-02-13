@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { Calendar, RefreshCw, Check, X, ExternalLink, Mail, Clock, Copy, ArrowUpDown, ArrowUp, ArrowDown, Filter, Download } from 'lucide-react'
+import { Calendar, RefreshCw, Check, X, ExternalLink, Mail, Clock, Copy, ArrowUpDown, ArrowUp, ArrowDown, Filter, Download, Users, Plus, Trash2 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 // Configure Axios
@@ -36,6 +36,51 @@ export const InviteLoggerView = () => {
             email_url: ''
         }
     })
+
+    // Account Management State
+    const [accounts, setAccounts] = useState([])
+    const [showAccountModal, setShowAccountModal] = useState(false)
+    const [addingAccount, setAddingAccount] = useState(false)
+
+    useEffect(() => {
+        fetchAccounts()
+    }, [])
+
+    const fetchAccounts = async () => {
+        try {
+            const res = await api.get('/invites/accounts')
+            setAccounts(res.data)
+        } catch (err) {
+            console.error("Failed to fetch accounts", err)
+        }
+    }
+
+    const handleAddAccount = async () => {
+        setAddingAccount(true)
+        try {
+            // This will open a new window/tab for auth if not handled by browser popup logic
+            // Since backend opens specific window, we just wait for response
+            const res = await api.post('/invites/accounts')
+            if (res.data.status === 'success') {
+                alert(`Account ${res.data.email} added successfully!`)
+                fetchAccounts()
+            }
+        } catch (err) {
+            alert("Failed to add account: " + (err.response?.data?.detail || err.message))
+        } finally {
+            setAddingAccount(false)
+        }
+    }
+
+    const handleRemoveAccount = async (email) => {
+        if (!window.confirm(`Are you sure you want to remove ${email}?`)) return
+        try {
+            await api.delete(`/invites/accounts/${email}`)
+            fetchAccounts()
+        } catch (err) {
+            alert("Failed to remove account")
+        }
+    }
 
     useEffect(() => {
         localStorage.setItem('invite_logger_filters', JSON.stringify(columnFilters))
@@ -320,6 +365,15 @@ export const InviteLoggerView = () => {
                         <Download size={16} />
                         Export
                     </button>
+
+                    <button
+                        onClick={() => setShowAccountModal(true)}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors shadow-sm"
+                        title="Manage Accounts"
+                    >
+                        <Users size={16} />
+                        Accounts ({accounts.length})
+                    </button>
                     <div className="w-px h-6 bg-slate-200 mx-1 hidden md:block"></div>
                     <div className="flex items-center gap-2">
                         <label className="text-sm font-medium text-slate-700 whitespace-nowrap">
@@ -565,6 +619,75 @@ export const InviteLoggerView = () => {
                     >
                         Next
                     </button>
+                </div>
+            )}
+
+
+            {/* Account Management Modal */}
+            {showAccountModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 m-4 animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                <Users className="text-blue-600" />
+                                Manage Accounts
+                            </h3>
+                            <button
+                                onClick={() => setShowAccountModal(false)}
+                                className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded-full"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {accounts.length === 0 ? (
+                                <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+                                    <p>No accounts connected.</p>
+                                    <p className="text-xs mt-1">Add a Gmail account to start scanning.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {accounts.map(email => (
+                                        <div key={email} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
+                                                    {email[0].toUpperCase()}
+                                                </div>
+                                                <span className="text-sm font-medium text-slate-700">{email}</span>
+                                            </div>
+                                            <button
+                                                onClick={() => handleRemoveAccount(email)}
+                                                className="text-red-500 hover:text-red-700 px-2 py-1.5 hover:bg-red-50 rounded transition-colors flex items-center gap-1.5"
+                                                title="Logout / Remove Account"
+                                            >
+                                                <Trash2 size={14} />
+                                                <span className="text-xs font-medium">Logout</span>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div className="mt-6 pt-6 border-t border-slate-100">
+                                <button
+                                    onClick={handleAddAccount}
+                                    disabled={addingAccount}
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
+                                >
+                                    {addingAccount ? (
+                                        <RefreshCw size={18} className="animate-spin" />
+                                    ) : (
+                                        <Plus size={18} />
+                                    )}
+                                    {addingAccount ? 'Authenticating...' : 'Add New Account'}
+                                </button>
+                                <p className="text-center text-xs text-slate-500 mt-2">
+                                    A browser window will open to authenticate with Google.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

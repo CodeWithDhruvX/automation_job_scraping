@@ -12,6 +12,7 @@ from src.connectors.gmail_connector import GmailConnector
 
 router = APIRouter(prefix="/api/invites", tags=["invites"])
 
+# Initialize Connector (handles migration and token loading)
 invite_manager = InviteManager()
 gmail_connector = GmailConnector()
 
@@ -19,20 +20,50 @@ class ScanRequest(BaseModel):
     days: int = 1
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+    accounts: Optional[List[str]] = None
 
 class InviteStatusUpdate(BaseModel):
     status: str
+
+@router.get("/accounts")
+async def get_accounts():
+    """Get list of connected Gmail accounts."""
+    return gmail_connector.get_accounts()
+
+@router.post("/accounts")
+async def add_account():
+    """Add a new Gmail account (opens browser for auth)."""
+    # This might block until auth is complete or timeout
+    result = gmail_connector.add_new_account()
+    if result.get("status") == "error":
+        raise HTTPException(status_code=500, detail=result.get("message"))
+    return result
+
+@router.delete("/accounts/{email}")
+async def remove_email_account(email: str):
+    """Remove a connected Gmail account."""
+    success = gmail_connector.remove_account(email)
+    if not success:
+        raise HTTPException(status_code=404, detail="Account not found")
+    return {"status": "removed", "email": email}
 
 @router.post("/scan")
 def scan_invites(req: ScanRequest):
     """Triggers an email scan for invites."""
     try:
-        invites = gmail_connector.scan_emails(days=req.days, start_date=req.start_date, end_date=req.end_date)
+        invites = gmail_connector.scan_emails(
+            days=req.days, 
+            start_date=req.start_date, 
+            end_date=req.end_date,
+            target_accounts=req.accounts
+        )
         new_count = invite_manager.add_invites(invites)
         if gmail_connector._cancel_scan:
              return {"status": "cancelled", "found": len(invites), "new": new_count, "invites": invites}
         return {"status": "success", "found": len(invites), "new": new_count, "invites": invites}
     except Exception as e:
+        # In case of error, we should still return what was found? 
+        # But for now, let's just raise exception to inform frontend
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/scan/cancel")

@@ -32,3 +32,5 @@ Thumbs.db
 # Security
 google_client_secrets.json
 token.json
+token.json.bak
+tokens/
