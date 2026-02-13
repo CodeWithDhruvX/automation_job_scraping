@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
-import { Calendar, RefreshCw, Check, X, ExternalLink, Mail, Clock, Copy, ArrowUpDown, ArrowUp, ArrowDown, Filter } from 'lucide-react'
+import { Calendar, RefreshCw, Check, X, ExternalLink, Mail, Clock, Copy, ArrowUpDown, ArrowUp, ArrowDown, Filter, Download } from 'lucide-react'
+import * as XLSX from 'xlsx'
 
 // Configure Axios
 const api = axios.create({
@@ -256,6 +257,37 @@ export const InviteLoggerView = () => {
         setColumnFilters(prev => ({ ...prev, [key]: value }))
     }
 
+    const handleExportExcel = () => {
+        const dataToExport = filteredInvites.map(invite => ({
+            Subject: invite.subject,
+            Sender: invite.sender,
+            'Meeting Link': invite.meeting_link,
+            Method: invite.detection_method,
+            'Schedule Time': invite.meeting_time ? new Date(invite.meeting_time).toLocaleString() : '',
+            Received: new Date(invite.detection_timestamp).toLocaleString(),
+            Status: invite.status,
+            'Email Reference': invite.email_url
+        }))
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport)
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, "Invites")
+        XLSX.writeFile(wb, "invites_export.xlsx")
+    }
+
+    const handleClearAllFilters = () => {
+        setColumnFilters({
+            subject: '',
+            sender: '',
+            meeting_link: '',
+            detection_method: '',
+            meeting_time: '',
+            detection_timestamp: '',
+            status: '',
+            email_url: ''
+        })
+    }
+
     return (
         <div className="space-y-6">
             {/* Header / Controls */}
@@ -280,6 +312,15 @@ export const InviteLoggerView = () => {
                 </div>
 
                 <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-lg border border-slate-100 flex-wrap">
+                    <button
+                        onClick={handleExportExcel}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-green-700 bg-white border border-green-200 rounded-md hover:bg-green-50 transition-colors shadow-sm"
+                        title="Export to Excel"
+                    >
+                        <Download size={16} />
+                        Export
+                    </button>
+                    <div className="w-px h-6 bg-slate-200 mx-1 hidden md:block"></div>
                     <div className="flex items-center gap-2">
                         <label className="text-sm font-medium text-slate-700 whitespace-nowrap">
                             Scan:
@@ -379,13 +420,35 @@ export const InviteLoggerView = () => {
                                                     placeholder={`Filter...`}
                                                     value={columnFilters[col.key]}
                                                     onChange={(e) => handleColumnFilterChange(col.key, e.target.value)}
-                                                    className="w-full px-2 py-1 text-xs border border-slate-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-normal"
+                                                    className="w-full pl-2 pr-6 py-1 text-xs border border-slate-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-normal"
                                                     onClick={(e) => e.stopPropagation()}
                                                 />
+                                                {columnFilters[col.key] && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            handleColumnFilterChange(col.key, '')
+                                                        }}
+                                                        className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 p-0.5 rounded-full hover:bg-slate-100"
+                                                        title="Clear Filter"
+                                                    >
+                                                        <X size={12} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </th>
                                     ))}
-                                    <th className="px-3 py-2"></th>
+                                    <th className="px-3 py-2 text-right">
+                                        {Object.values(columnFilters).some(v => v) && (
+                                            <button
+                                                onClick={handleClearAllFilters}
+                                                className="text-xs text-red-500 hover:text-red-700 font-medium whitespace-nowrap flex items-center justify-end gap-1 ml-auto"
+                                                title="Clear All Filters"
+                                            >
+                                                <X size={12} /> Clear All
+                                            </button>
+                                        )}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
