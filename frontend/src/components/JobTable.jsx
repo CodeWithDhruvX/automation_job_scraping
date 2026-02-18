@@ -35,12 +35,12 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
             isSelect: true,
             sortable: false
         },
-        { key: 'title', label: 'Title', getValue: j => j.title || 'N/A', className: "font-medium text-slate-900 max-w-md truncate", sortable: true },
-        { key: 'company', label: 'Company', getValue: j => j.company || 'N/A', sortable: true },
-        { key: 'location', label: 'Location', getValue: j => j.location || j.city || 'N/A', sortable: true },
-        { key: 'salary', label: 'Salary', getValue: j => (j.min_amount && j.max_amount ? `$${j.min_amount} - $${j.max_amount}` : 'N/A'), getRawValue: j => j.min_amount || 0, className: "text-slate-500", sortable: true },
-        { key: 'date_posted', label: 'Posted', getValue: j => j.date_posted || 'Recently', className: "text-slate-500", sortable: true },
-        { key: 'date_modified', label: 'Modified', getValue: j => j.status_updated_at ? new Date(j.status_updated_at).toLocaleDateString() : 'N/A', getRawValue: j => j.status_updated_at || j.added_date || '', className: "text-slate-500", sortable: true },
+        { key: 'title', label: 'Title', getValue: j => j.title || 'N/A', className: "font-semibold text-slate-900 dark:text-slate-100 max-w-md truncate", sortable: true },
+        { key: 'company', label: 'Company', getValue: j => j.company || 'N/A', className: "text-slate-600 dark:text-slate-400", sortable: true },
+        { key: 'location', label: 'Location', getValue: j => j.location || j.city || 'N/A', className: "text-slate-500 dark:text-slate-400", sortable: true },
+        { key: 'salary', label: 'Salary', getValue: j => (j.min_amount && j.max_amount ? `$${j.min_amount} - $${j.max_amount}` : 'N/A'), getRawValue: j => j.min_amount || 0, className: "text-slate-500 dark:text-slate-400", sortable: true },
+        { key: 'date_posted', label: 'Posted', getValue: j => j.date_posted || 'Recently', className: "text-slate-500 dark:text-slate-400", sortable: true },
+        { key: 'date_modified', label: 'Modified', getValue: j => j.status_updated_at ? new Date(j.status_updated_at).toLocaleDateString() : 'N/A', getRawValue: j => j.status_updated_at || j.added_date || '', className: "text-slate-500 dark:text-slate-400", sortable: true },
         { key: 'status', label: 'Status', getValue: j => j.my_status || 'NEW', sortable: true },
     ], [])
 
@@ -276,13 +276,13 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
 
     return (
         <>
-            <div className="p-4 border-b border-slate-200 bg-white flex items-center gap-4">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center gap-4 transition-colors">
                 <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={20} />
                     <input
                         type="text"
                         placeholder="Search jobs..."
-                        className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                        className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all outline-none"
                         value={globalSearchTerm}
                         onChange={(e) => setGlobalSearchTerm(e.target.value)}
                     />
@@ -297,7 +297,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                 </div>
                 <button
                     onClick={() => setReminderJob({ isCustom: true })}
-                    className="ml-auto mr-2 px-3 py-2.5 text-sm font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition-all shadow-sm flex items-center gap-2"
+                    className="ml-auto mr-2 px-3 py-2.5 text-sm font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl transition-all shadow-sm flex items-center gap-2"
                     title="Set Custom Reminder"
                 >
                     <Bell size={18} />
@@ -311,8 +311,8 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
             </div>
 
             <div className="overflow-x-auto min-h-[400px]">
-                <table className="w-full text-left text-sm text-slate-600 relative">
-                    <thead className="bg-slate-50 text-slate-900 font-medium border-b border-slate-200">
+                <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300 relative">
+                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-slate-100 font-medium border-b border-slate-200 dark:border-slate-700">
                         <tr>
                             {COLUMN_DEFS.map((col) => {
                                 if (col.key === 'select') {
@@ -323,7 +323,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                         <th key={col.key} className="px-6 py-4 w-10">
                                             <input
                                                 type="checkbox"
-                                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                className="rounded border-slate-300 dark:border-slate-600 dark:bg-slate-900 text-indigo-600 focus:ring-indigo-500"
                                                 checked={allVisibleSelected}
                                                 ref={input => { if (input) input.indeterminate = isIndeterminate }}
                                                 onChange={(e) => {
@@ -392,9 +392,9 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                                         e.stopPropagation()
                                                         setActiveFilterColumn(activeFilterColumn === col.key ? null : col.key)
                                                     }}
-                                                    className={`p-1 rounded hover:bg-slate-200 transition-colors ${activeFilterColumn === col.key || isFiltering
-                                                        ? 'text-blue-600 bg-slate-100'
-                                                        : 'text-slate-300 opacity-0 group-hover:opacity-100'
+                                                    className={`p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors ${activeFilterColumn === col.key || isFiltering
+                                                        ? 'text-blue-600 bg-slate-100 dark:bg-slate-800'
+                                                        : 'text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100'
                                                         }`}
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
@@ -418,10 +418,10 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                             <th className="px-6 py-4 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                         {filteredJobs.length === 0 ? (
                             <tr>
-                                <td colSpan={COLUMN_DEFS.length + 1} className="text-center py-12 text-slate-400">
+                                <td colSpan={COLUMN_DEFS.length + 1} className="text-center py-12 text-slate-400 dark:text-slate-500">
                                     No jobs match your filters.
                                 </td>
                             </tr>
@@ -430,7 +430,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                 <tr
                                     key={idx}
                                     onClick={() => setSelectedJob(job)}
-                                    className="hover:bg-slate-50 transition-colors group cursor-pointer"
+                                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
                                 >
                                     {COLUMN_DEFS.map((col) => {
                                         const rawVal = col.getValue(job)
@@ -439,7 +439,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                                 {col.key === 'select' ? (
                                                     <input
                                                         type="checkbox"
-                                                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                        className="rounded border-slate-300 dark:border-slate-600 dark:bg-slate-900 text-indigo-600 focus:ring-indigo-500"
                                                         checked={selectedJobUrls.includes(job.job_url)}
                                                         onClick={(e) => e.stopPropagation()}
                                                         onChange={(e) => {
@@ -454,9 +454,9 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                                     <div className="truncate" title={job.title}>{rawVal}</div>
                                                 ) : col.key === 'status' ? (
                                                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                                        ${job.my_status === 'NEW' ? 'bg-green-100 text-green-700' : ''}
-                                                        ${job.my_status === 'APPLIED' ? 'bg-blue-100 text-blue-700' : ''}
-                                                        ${!job.my_status ? 'bg-slate-100 text-slate-600' : ''}
+                                                        ${job.my_status === 'NEW' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : ''}
+                                                        ${job.my_status === 'APPLIED' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' : ''}
+                                                        ${!job.my_status ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300' : ''}
                                                     `}>
                                                         {rawVal}
                                                     </span>
@@ -470,21 +470,21 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                         <div className="flex items-center justify-end gap-2 transition-opacity">
                                             <button
                                                 title={isJobSaved(job) ? "Unsave Job" : "Save Job"}
-                                                className={`p-1 hover:bg-slate-200 rounded ${isJobSaved(job) ? 'text-indigo-600' : 'text-slate-400'}`}
+                                                className={`p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded ${isJobSaved(job) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`}
                                                 onClick={(e) => { e.stopPropagation(); onToggleSave && onToggleSave(job) }}
                                             >
                                                 <Bookmark size={16} fill={isJobSaved(job) ? "currentColor" : "none"} />
                                             </button>
                                             <button
                                                 title="Open Link"
-                                                className="p-1 hover:bg-slate-200 rounded text-blue-600"
+                                                className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-blue-600 dark:text-blue-400"
                                                 onClick={(e) => { e.stopPropagation(); window.open(job.job_url, '_blank') }}
                                             >
                                                 <ExternalLink size={16} />
                                             </button>
                                             <button
                                                 title="Remind Me"
-                                                className="p-1 hover:bg-slate-200 rounded text-amber-500"
+                                                className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-amber-500 dark:text-amber-400"
                                                 onClick={(e) => { e.stopPropagation(); setReminderJob(job) }}
                                             >
                                                 <Bell size={16} />
@@ -492,7 +492,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                             {job.my_status === 'APPLIED' ? (
                                                 <button
                                                     title="Unapply Job"
-                                                    className="p-1 hover:bg-slate-200 rounded text-red-600"
+                                                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-red-600 dark:text-red-400"
                                                     onClick={async (e) => {
                                                         e.stopPropagation();
                                                         if (window.confirm('Mark this job as NOT applied?')) {
@@ -515,7 +515,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                             ) : (
                                                 <button
                                                     title="Mark Applied"
-                                                    className="p-1 hover:bg-slate-200 rounded text-green-600"
+                                                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-green-600 dark:text-green-400"
                                                     onClick={async (e) => {
                                                         e.stopPropagation();
                                                         try {
@@ -536,7 +536,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                             )}
                                             <button
                                                 title="Hide"
-                                                className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-600"
+                                                className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                                                 onClick={async (e) => {
                                                     e.stopPropagation();
                                                     try {
@@ -626,16 +626,16 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
             {selectedJob && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
                     <div
-                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+                        className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm transition-opacity"
                         onClick={() => setSelectedJob(null)}
                     />
-                    <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+                    <div className="relative w-full max-w-4xl max-h-[90vh] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
                         {/* Header */}
-                        <div className="flex items-start justify-between p-6 border-b border-slate-100 bg-slate-50/50">
+                        <div className="flex items-start justify-between p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
                             <div className="pr-12">
-                                <h2 className="text-2xl font-bold text-slate-900 leading-tight">{selectedJob.title}</h2>
-                                <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-slate-600">
-                                    <span className="font-medium text-slate-900 text-base">{selectedJob.company}</span>
+                                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 leading-tight">{selectedJob.title}</h2>
+                                <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-slate-600 dark:text-slate-400">
+                                    <span className="font-medium text-slate-900 dark:text-slate-200 text-base">{selectedJob.company}</span>
                                     <span>•</span>
                                     <span>{selectedJob.location || selectedJob.city}</span>
                                     {selectedJob.date_posted && (
@@ -648,29 +648,29 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                             </div>
                             <button
                                 onClick={() => setSelectedJob(null)}
-                                className="absolute right-4 top-4 p-2 rounded-full bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors border border-slate-200 shadow-sm"
+                                className="absolute right-4 top-4 p-2 rounded-full bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 dark:text-slate-300 transition-colors border border-slate-200 dark:border-slate-600 shadow-sm"
                             >
                                 <X size={20} />
                             </button>
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-6 text-slate-700 leading-relaxed scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                        <div className="flex-1 overflow-y-auto p-6 text-slate-700 dark:text-slate-300 leading-relaxed scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 scrollbar-track-transparent">
                             {/* Tags */}
                             <div className="flex flex-wrap gap-2 mb-8">
                                 {selectedJob.job_type && (
-                                    <span className="px-3 py-1 text-xs font-semibold bg-blue-50 text-blue-700 rounded-full border border-blue-100">
+                                    <span className="px-3 py-1 text-xs font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-full border border-blue-100 dark:border-blue-800">
                                         {selectedJob.job_type}
                                     </span>
                                 )}
                                 {(selectedJob.min_amount || selectedJob.max_amount) && (
-                                    <span className="px-3 py-1 text-xs font-semibold bg-green-50 text-green-700 rounded-full border border-green-100">
+                                    <span className="px-3 py-1 text-xs font-semibold bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-full border border-green-100 dark:border-green-800">
                                         {selectedJob.min_amount ? `$${selectedJob.min_amount}` : ''}
                                         {selectedJob.min_amount && selectedJob.max_amount ? ' - ' : ''}
                                         {selectedJob.max_amount ? `$${selectedJob.max_amount}` : ''}
                                     </span>
                                 )}
-                                <span className="px-3 py-1 text-xs font-semibold bg-slate-100 text-slate-600 rounded-full capitalize border border-slate-200">
+                                <span className="px-3 py-1 text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full capitalize border border-slate-200 dark:border-slate-600">
                                     {selectedJob.site || 'Unknown Source'}
                                 </span>
                             </div>
@@ -681,7 +681,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                     <div className="flex gap-2">
                                         <button
                                             onClick={handleCopyLink}
-                                            className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all font-medium"
+                                            className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all font-medium"
                                             title="Copy Job URL"
                                         >
                                             {linkCopied ? <Check size={14} className="text-green-600" /> : <Link size={14} />}
@@ -689,7 +689,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                         </button>
                                         <button
                                             onClick={handleCopyMarkdown}
-                                            className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all font-medium"
+                                            className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all font-medium"
                                             title="Copy Markdown Link"
                                         >
                                             {mdCopied ? <Check size={14} className="text-green-600" /> : <FileText size={14} />}
@@ -697,7 +697,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                         </button>
                                         <button
                                             onClick={handleCopyInterviewPrompt}
-                                            className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-purple-600 hover:border-purple-200 hover:bg-purple-50 transition-all font-medium"
+                                            className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all font-medium"
                                             title="Copy Interview Prep Prompt"
                                         >
                                             {promptCopied ? <Check size={14} className="text-green-600" /> : <MessageSquare size={14} />}
@@ -705,7 +705,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                         </button>
                                         <button
                                             onClick={handleCopy}
-                                            className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all font-medium"
+                                            className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all font-medium"
                                             title="Copy Title & Description"
                                         >
                                             {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
@@ -713,7 +713,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                         </button>
                                     </div>
                                 </div>
-                                <div className="whitespace-pre-wrap font-sans text-base text-slate-800">
+                                <div className="whitespace-pre-wrap font-sans text-base text-slate-800 dark:text-slate-200">
                                     {loadingDesc ? (
                                         <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-3">
                                             <Loader2 size={32} className="animate-spin text-blue-500" />
@@ -721,7 +721,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                         </div>
                                     ) : (
                                         selectedJob.description || (
-                                            <div className="py-8 text-center text-slate-400 italic bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                                            <div className="py-8 text-center text-slate-400 dark:text-slate-500 italic bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">
                                                 No detailed description available for this job.
                                             </div>
                                         )
@@ -731,7 +731,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                         </div>
 
                         {/* Footer */}
-                        <div className="p-4 sm:p-6 border-t border-slate-100 bg-slate-50/80 flex flex-col xl:flex-row justify-between items-center gap-4">
+                        <div className="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/80 flex flex-col xl:flex-row justify-between items-center gap-4">
                             <div className="flex items-center gap-4 w-full xl:w-auto justify-between xl:justify-start">
                                 <div className="text-xs text-slate-400 font-medium">
                                     Job ID: {selectedJob.id || 'N/A'} • Found {selectedJob.date_found ? new Date(selectedJob.date_found).toLocaleDateString() : 'Recently'}
@@ -784,7 +784,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                                 } catch (err) { console.error('Failed to reject:', err) }
                                             }
                                         }}
-                                        className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-xl hover:bg-red-100 transition-colors shadow-sm flex items-center gap-1.5"
+                                        className="px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors shadow-sm flex items-center gap-1.5"
                                     >
                                         <Ban size={16} /> <span className="hidden sm:inline">Reject</span>
                                     </button>
@@ -801,7 +801,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                                 } catch (err) { console.error('Failed to mark interview:', err) }
                                             }
                                         }}
-                                        className="px-3 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors shadow-sm flex items-center gap-1.5"
+                                        className="px-3 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors shadow-sm flex items-center gap-1.5"
                                     >
                                         <UserCheck size={16} /> <span className="hidden sm:inline">Interview</span>
                                     </button>
@@ -819,7 +819,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                                 } catch (err) { console.error('Failed to unapply:', err) }
                                             }
                                         }}
-                                        className="px-3 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-1.5"
+                                        className="px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors shadow-sm flex items-center gap-1.5"
                                     >
                                         <XCircle size={16} /> <span className="hidden sm:inline">Unapply</span>
                                     </button>
@@ -833,7 +833,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                                 if (onJobUpdate) onJobUpdate(updated)
                                             } catch (err) { console.error('Failed to mark applied:', err) }
                                         }}
-                                        className="px-3 py-2 text-sm font-medium text-green-600 bg-green-50 border border-green-100 rounded-xl hover:bg-green-100 transition-colors shadow-sm flex items-center gap-1.5"
+                                        className="px-3 py-2 text-sm font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-100 dark:border-green-800 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors shadow-sm flex items-center gap-1.5"
                                     >
                                         <CheckCircle size={16} /> <span className="hidden sm:inline">Applied</span>
                                     </button>
@@ -844,7 +844,7 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                 {/* Tools */}
                                 <button
                                     onClick={() => setReminderJob(selectedJob)}
-                                    className="p-2.5 text-sm font-medium text-amber-600 bg-amber-50 border border-amber-100 rounded-xl hover:bg-amber-100 transition-colors shadow-sm"
+                                    className="p-2.5 text-sm font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors shadow-sm"
                                     title="Remind Me"
                                 >
                                     <Bell size={18} />
@@ -854,8 +854,8 @@ export function JobTable({ jobs, onJobUpdate, savedJobs = [], onToggleSave, onFi
                                     className={`
                                         p-2.5 text-sm font-medium border rounded-xl transition-colors shadow-sm
                                         ${isJobSaved(selectedJob)
-                                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
-                                            : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
+                                            ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50'
+                                            : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'
                                         }
                                     `}
                                     title={isJobSaved(selectedJob) ? 'Unsave' : 'Save'}
@@ -949,12 +949,12 @@ const ColumnFilter = ({ column, jobs, initialFilter, onApply, onClear, onClose }
     }
 
     return (
-        <div className="absolute top-full mt-2 left-0 w-64 bg-white rounded-lg shadow-xl border border-slate-200 z-[100] flex flex-col text-sm animate-in fade-in zoom-in-95 duration-100">
-            <div className="p-3 border-b border-slate-100">
+        <div className="absolute top-full mt-2 left-0 w-64 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-[100] flex flex-col text-sm animate-in fade-in zoom-in-95 duration-100 transition-colors">
+            <div className="p-3 border-b border-slate-100 dark:border-slate-700">
                 <input
                     type="text"
                     placeholder="Search..."
-                    className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-700"
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                     autoFocus
@@ -962,10 +962,10 @@ const ColumnFilter = ({ column, jobs, initialFilter, onApply, onClear, onClose }
             </div>
 
             <div className="max-h-60 overflow-y-auto p-2 space-y-1">
-                <label className="flex items-center px-2 py-1.5 hover:bg-slate-50 rounded cursor-pointer">
+                <label className="flex items-center px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 rounded cursor-pointer transition-colors">
                     <input
                         type="checkbox"
-                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 mr-2"
+                        className="rounded border-slate-300 dark:border-slate-600 dark:bg-slate-900 text-blue-600 focus:ring-blue-500 mr-2"
                         checked={areAllVisibleSelected}
                         ref={input => { if (input) input.indeterminate = isIndeterminate }}
                         onChange={(e) => {
@@ -993,27 +993,27 @@ const ColumnFilter = ({ column, jobs, initialFilter, onApply, onClear, onClose }
                             }
                         }}
                     />
-                    <span className="text-slate-900 font-medium">(Select All)</span>
+                    <span className="text-slate-900 dark:text-slate-100 font-medium">(Select All)</span>
                 </label>
 
                 {displayValues.map((val, idx) => (
-                    <label key={idx} className="flex items-center px-2 py-1.5 hover:bg-slate-50 rounded cursor-pointer">
+                    <label key={idx} className="flex items-center px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 rounded cursor-pointer transition-colors">
                         <input
                             type="checkbox"
-                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 mr-2"
+                            className="rounded border-slate-300 dark:border-slate-600 dark:bg-slate-900 text-blue-600 focus:ring-blue-500 mr-2"
                             checked={isSelected(val)}
                             onChange={() => handleCheckboxChange(val)}
                         />
-                        <span className="text-slate-700 truncate block" title={val}>{val}</span>
+                        <span className="text-slate-700 dark:text-slate-300 truncate block" title={val}>{val}</span>
                     </label>
                 ))}
 
                 {displayValues.length === 0 && (
-                    <div className="px-2 py-4 text-center text-slate-400 italic">No matches</div>
+                    <div className="px-2 py-4 text-center text-slate-400 dark:text-slate-500 italic">No matches</div>
                 )}
             </div>
 
-            <div className="p-3 border-t border-slate-100 flex items-center justify-between bg-slate-50 rounded-b-lg">
+            <div className="p-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/80 rounded-b-lg">
                 <button
                     onClick={clearFilter}
                     className="text-xs text-slate-500 hover:text-slate-800 font-medium px-2 py-1 rounded hover:bg-slate-200 transition-colors"

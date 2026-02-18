@@ -445,18 +445,18 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
     }
 
     return (
-        <div className="fixed inset-0 z-50 bg-slate-50 overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-50 dark:bg-slate-900 overflow-y-auto transition-colors">
             {/* Header */}
-            <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+            <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={onClose}
                         className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
                         title="Back to Dashboard"
                     >
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={20} className="dark:text-slate-300" />
                     </button>
-                    <h1 className="text-xl font-bold text-slate-900">
+                    <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                         Applied Jobs ({jobs.length})
                     </h1>
                 </div>
@@ -513,7 +513,7 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
                     </button>
                     <button
                         onClick={() => window.location.hash = 'rejected-jobs'}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-md hover:bg-slate-100 transition-colors shadow-sm"
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors shadow-sm"
                         title="View Rejected Jobs"
                     >
                         <Ban size={16} className="text-red-500" />
@@ -533,35 +533,35 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div
                         onClick={() => setViewMode('APPLIED')}
-                        className={`p-4 rounded-xl border shadow-sm cursor-pointer transition-colors ${viewMode === 'APPLIED' ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-500/20' : 'bg-white border-slate-200 hover:border-blue-300'}`}
+                        className={`p-4 rounded-xl border shadow-sm cursor-pointer transition-colors ${viewMode === 'APPLIED' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-2 ring-blue-500/20' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700'}`}
                     >
-                        <div className="text-slate-500 text-sm font-medium">Total Applied</div>
-                        <div className="text-2xl font-bold mt-1 text-blue-600">{jobs.length}</div>
+                        <div className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Applied</div>
+                        <div className="text-2xl font-bold mt-1 text-blue-600 dark:text-blue-400">{jobs.length}</div>
                     </div>
                     <div
                         onClick={() => setViewMode('INTERVIEW')}
-                        className={`p-4 rounded-xl border shadow-sm cursor-pointer transition-colors ${viewMode === 'INTERVIEW' ? 'bg-indigo-50 border-indigo-200 ring-2 ring-indigo-500/20' : 'bg-white border-slate-200 hover:border-indigo-300'}`}
+                        className={`p-4 rounded-xl border shadow-sm cursor-pointer transition-colors ${viewMode === 'INTERVIEW' ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 ring-2 ring-indigo-500/20' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700'}`}
                     >
-                        <div className="text-slate-500 text-sm font-medium">Interview Selected</div>
-                        <div className="text-2xl font-bold mt-1 text-indigo-600">{interviewJobs.length}</div>
+                        <div className="text-slate-500 dark:text-slate-400 text-sm font-medium">Interview Selected</div>
+                        <div className="text-2xl font-bold mt-1 text-indigo-600 dark:text-indigo-400">{interviewJobs.length}</div>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                        <div className="text-slate-500 text-sm font-medium">Rejected</div>
-                        <div className="text-2xl font-bold mt-1 text-red-600">{rejectedCount}</div>
+                    <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <div className="text-slate-500 dark:text-slate-400 text-sm font-medium">Rejected</div>
+                        <div className="text-2xl font-bold mt-1 text-red-600 dark:text-red-400">{rejectedCount}</div>
                     </div>
                 </div>
 
                 {/* Jobs Table */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                     {jobs.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                        <div className="flex flex-col items-center justify-center h-64 text-slate-400 dark:text-slate-500">
                             <p>No applied jobs yet.</p>
                             <p className="text-sm mt-2">Mark jobs as applied to see them here.</p>
                         </div>
                     ) : (
                         <div className="overflow-visible min-h-[400px]">
-                            <table className="w-full text-left text-sm text-slate-600 relative">
-                                <thead className="bg-slate-50 text-slate-900 font-medium border-b border-slate-200">
+                            <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300 relative">
+                                <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-slate-100 font-medium border-b border-slate-200 dark:border-slate-700">
                                     <tr>
                                         {COLUMN_DEFS.map((col) => {
                                             if (col.key === 'select') {
@@ -628,7 +628,7 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
                                         <th className="px-6 py-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                                     {filteredJobs.length === 0 ? (
                                         <tr>
                                             <td colSpan={COLUMN_DEFS.length + 1} className="text-center py-12 text-slate-400">
@@ -640,7 +640,7 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
                                             <tr
                                                 key={idx}
                                                 onClick={() => setSelectedJob(job)}
-                                                className="hover:bg-slate-50 transition-colors group cursor-pointer"
+                                                className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
                                             >
                                                 {COLUMN_DEFS.map((col) => {
                                                     const rawVal = col.getValue(job)
@@ -649,7 +649,7 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
                                                             {col.key === 'select' ? (
                                                                 <input
                                                                     type="checkbox"
-                                                                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                                    className="rounded border-slate-300 dark:border-slate-600 dark:bg-slate-900 text-indigo-600 focus:ring-indigo-500"
                                                                     checked={selectedJobUrls.includes(job.job_url)}
                                                                     onClick={(e) => e.stopPropagation()}
                                                                     onChange={(e) => {
@@ -793,16 +793,16 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
             {selectedJob && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
                     <div
-                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+                        className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm transition-opacity"
                         onClick={() => setSelectedJob(null)}
                     />
-                    <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+                    <div className="relative w-full max-w-4xl max-h-[90vh] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
                         {/* Header */}
-                        <div className="flex items-start justify-between p-6 border-b border-slate-100 bg-slate-50/50">
+                        <div className="flex items-start justify-between p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
                             <div className="pr-12">
-                                <h2 className="text-2xl font-bold text-slate-900 leading-tight">{selectedJob.title}</h2>
-                                <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-slate-600">
-                                    <span className="font-medium text-slate-900 text-base">{selectedJob.company}</span>
+                                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 leading-tight">{selectedJob.title}</h2>
+                                <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-slate-600 dark:text-slate-400">
+                                    <span className="font-medium text-slate-900 dark:text-slate-200 text-base">{selectedJob.company}</span>
                                     <span>•</span>
                                     <span>{selectedJob.location || selectedJob.city}</span>
                                     {selectedJob.date_posted && (
@@ -815,7 +815,7 @@ export function AppliedJobsView({ onClose, savedJobs = [], onToggleSave, onJobUp
                             </div>
                             <button
                                 onClick={() => setSelectedJob(null)}
-                                className="absolute right-4 top-4 p-2 rounded-full bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors border border-slate-200 shadow-sm"
+                                className="absolute right-4 top-4 p-2 rounded-full bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-400 dark:text-slate-300 transition-colors border border-slate-200 dark:border-slate-600 shadow-sm"
                             >
                                 <X size={20} />
                             </button>

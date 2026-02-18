@@ -1,0 +1,108 @@
+{
+    "keywords": {
+        "sender": [
+            "hr",
+            "talent",
+            "recruitment",
+            "careers",
+            "hiring",
+            "jobs",
+            "staffing",
+            "human resources",
+            "people",
+            "acquisition",
+            "team",
+            "resourcing"
+        ],
+        "subject": [
+            "job opportunity",
+            "we are hiring",
+            "we're hiring",
+            "immediate requirement",
+            "position for",
+            "hiring for",
+            "opening for",
+            "vacancy",
+            "job application",
+            "interview",
+            "shortlisted",
+            "offer",
+            "developer",
+            "engineer",
+            "analyst",
+            "consultant",
+            "role",
+            "urgent"
+        ],
+        "body": [
+            "jd attached",
+            "job description",
+            "ctc",
+            "notice period",
+            "experience required",
+            "resume",
+            "cv",
+            "profile",
+            "salary",
+            "budget",
+            "urgent",
+            "referral",
+            "apply",
+            "key skills",
+            "immediate joiner",
+            "years of experience"
+        ]
+    },
+    "priority_rules": {
+        "high": {
+            "locations": [
+                "bangalore",
+                "bengaluru",
+                "remote",
+                "hyd",
+                "hyderabad",
+                "pune"
+            ],
+            "tech_stack": [
+                "python",
+                "react",
+                "fastapi",
+                "django",
+                "aws",
+                "docker",
+                "kubernetes",
+                "javascript",
+                "typescript"
+            ],
+            "keywords": [
+                "immediate joiner",
+                "urgent",
+                "direct"
+            ]
+        },
+        "medium": {
+            "tech_stack": [
+                "java",
+                "c++",
+                "sql",
+                "node",
+                "backend",
+                "frontend"
+            ]
+        },
+        "low": {
+            "keywords": [
+                "internship",
+                "unpaid",
+                "training"
+            ]
+        }
+    },
+    "labels": {
+        "root": "JobSpy",
+        "recruiter": "Recruiters",
+        "priority": "Priority",
+        "companies": "Companies",
+        "status": "Status"
+    }
+}

@@ -293,10 +293,10 @@ export const InviteLoggerView = () => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'ADDED': return 'bg-green-100 text-green-800'
-            case 'IGNORED': return 'bg-gray-100 text-gray-800'
-            case 'PENDING': return 'bg-blue-100 text-blue-800'
-            default: return 'bg-slate-100 text-slate-800'
+            case 'ADDED': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
+            case 'IGNORED': return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+            case 'PENDING': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400'
+            default: return 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'
         }
     }
 
@@ -338,13 +338,13 @@ export const InviteLoggerView = () => {
     return (
         <div className="space-y-6">
             {/* Header / Controls */}
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 transition-colors">
                 <div>
-                    <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                        <Mail className="text-blue-600" />
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                        <Mail className="text-blue-600 dark:text-blue-400" />
                         Invite Logger
                     </h2>
-                    <p className="text-slate-500 text-sm mt-1">Scan emails for meeting invites and add them to your calendar.</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Scan emails for meeting invites and add them to your calendar.</p>
 
                     {/* Search Bar */}
                     <div className="mt-4">
@@ -353,15 +353,15 @@ export const InviteLoggerView = () => {
                             placeholder="Global search..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full md:w-64 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full md:w-64 px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-lg border border-slate-100 flex-wrap">
+                <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-100 dark:border-slate-700 flex-wrap">
                     <button
                         onClick={handleExportExcel}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-green-700 bg-white border border-green-200 rounded-md hover:bg-green-50 transition-colors shadow-sm"
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-green-700 dark:text-green-400 bg-white dark:bg-slate-800 border border-green-200 dark:border-green-800 rounded-md hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors shadow-sm"
                         title="Export to Excel"
                     >
                         <Download size={16} />
@@ -370,21 +370,21 @@ export const InviteLoggerView = () => {
 
                     <button
                         onClick={() => setShowAccountModal(true)}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors shadow-sm"
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
                         title="Manage Accounts"
                     >
                         <Users size={16} />
                         Accounts ({accounts.length})
                     </button>
-                    <div className="w-px h-6 bg-slate-200 mx-1 hidden md:block"></div>
+                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1 hidden md:block"></div>
                     <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-slate-700 whitespace-nowrap">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
                             Scan:
                         </label>
                         <select
                             value={scanDays}
                             onChange={(e) => setScanDays(e.target.value)}
-                            className="border-slate-300 rounded-md text-sm py-1 px-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 rounded-md text-sm py-1 px-2 focus:ring-blue-500 focus:border-blue-500"
                         >
                             <option value="1">Last 24 Hours</option>
                             <option value="2">Last 2 Days</option>
@@ -436,23 +436,23 @@ export const InviteLoggerView = () => {
             </div>
 
             {/* Invites Table */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                 {loading ? (
-                    <div className="p-12 text-center text-slate-500">Loading invites...</div>
+                    <div className="p-12 text-center text-slate-500 dark:text-slate-400">Loading invites...</div>
                 ) : invites.length === 0 ? (
-                    <div className="p-12 text-center text-slate-500">
-                        <Mail size={48} className="mx-auto text-slate-300 mb-4" />
+                    <div className="p-12 text-center text-slate-500 dark:text-slate-400">
+                        <Mail size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
                         <p>No invites found. Try scanning your emails.</p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
+                    <div className="overflow-x-auto overflow-y-visible">
+                        <table className="w-full text-left text-sm dark:text-slate-300">
+                            <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
                                 <tr>
                                     {COLUMNS.map((col) => (
                                         <th
                                             key={col.key}
-                                            className="px-3 py-3 font-medium cursor-pointer hover:bg-slate-100 transition-colors select-none"
+                                            className="px-3 py-3 font-medium cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors select-none"
                                             onClick={() => handleSort(col.key)}
                                         >
                                             <div className="flex items-center gap-1">
@@ -467,7 +467,7 @@ export const InviteLoggerView = () => {
                                     ))}
                                     <th className="px-3 py-3 font-medium text-right">Actions</th>
                                 </tr>
-                                <tr className="bg-slate-50 border-b border-slate-200">
+                                <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
                                     {COLUMNS.map((col) => (
                                         <th key={`filter-${col.key}`} className="px-3 py-2">
                                             <div className="relative">
@@ -476,7 +476,7 @@ export const InviteLoggerView = () => {
                                                     placeholder={`Filter...`}
                                                     value={columnFilters[col.key] || ''}
                                                     onChange={(e) => handleColumnFilterChange(col.key, e.target.value)}
-                                                    className="w-full pl-2 pr-6 py-1 text-xs border border-slate-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-normal"
+                                                    className="w-full pl-2 pr-6 py-1 text-xs border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-normal"
                                                     onClick={(e) => e.stopPropagation()}
                                                 />
                                                 {columnFilters[col.key] && (
@@ -507,33 +507,33 @@ export const InviteLoggerView = () => {
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                                 {currentInvites.map((invite) => (
-                                    <tr key={invite.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-3 py-4 font-medium text-slate-900 max-w-[200px] truncate" title={invite.subject}>
+                                    <tr key={invite.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="px-3 py-4 font-medium text-slate-900 dark:text-slate-100 max-w-[200px] truncate" title={invite.subject}>
                                             {invite.subject}
                                         </td>
-                                        <td className="px-3 py-4 font-medium text-slate-700">
+                                        <td className="px-3 py-4 font-medium text-slate-700 dark:text-slate-300">
                                             {invite.company || '-'}
                                         </td>
-                                        <td className="px-3 py-4 text-slate-600 max-w-[120px]">
+                                        <td className="px-3 py-4 text-slate-600 dark:text-slate-400 max-w-[120px]">
                                             <div className="flex items-center gap-2">
                                                 <span className="truncate" title={invite.sender}>
                                                     {invite.sender.split('<')[0].trim()}...
                                                 </span>
                                                 <button
                                                     onClick={() => navigator.clipboard.writeText(invite.sender)}
-                                                    className="text-slate-400 hover:text-blue-600 transition-colors"
+                                                    className="text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                                                     title="Copy Sender"
                                                 >
                                                     <Copy size={14} />
                                                 </button>
                                             </div>
                                         </td>
-                                        <td className="px-3 py-4 text-slate-600">
-                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${invite.source === 'LinkedIn' ? 'bg-blue-50 text-blue-700' :
-                                                invite.source === 'Naukri' ? 'bg-yellow-50 text-yellow-700' :
-                                                    'bg-slate-100 text-slate-600'
+                                        <td className="px-3 py-4 text-slate-600 dark:text-slate-400">
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${invite.source === 'LinkedIn' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+                                                invite.source === 'Naukri' ? 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
+                                                    'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                                                 }`}>
                                                 {invite.source || 'Email'}
                                             </span>
@@ -632,21 +632,21 @@ export const InviteLoggerView = () => {
 
             {/* Pagination Controls */}
             {filteredInvites.length > 0 && (
-                <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div className="flex justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
                     <button
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         Previous
                     </button>
-                    <span className="text-sm text-slate-600">
+                    <span className="text-sm text-slate-600 dark:text-slate-400">
                         Page {currentPage} of {totalPages}
                     </span>
                     <button
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
-                        className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         Next
                     </button>
@@ -656,16 +656,16 @@ export const InviteLoggerView = () => {
 
             {/* Account Management Modal */}
             {showAccountModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 m-4 animate-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md p-6 m-4 animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-slate-700">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                <Users className="text-blue-600" />
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                                <Users className="text-blue-600 dark:text-blue-400" />
                                 Manage Accounts
                             </h3>
                             <button
                                 onClick={() => setShowAccountModal(false)}
-                                className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded-full"
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"
                             >
                                 <X size={20} />
                             </button>
@@ -680,12 +680,12 @@ export const InviteLoggerView = () => {
                             ) : (
                                 <div className="space-y-2">
                                     {accounts.map(email => (
-                                        <div key={email} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                        <div key={email} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-bold">
                                                     {email[0].toUpperCase()}
                                                 </div>
-                                                <span className="text-sm font-medium text-slate-700">{email}</span>
+                                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{email}</span>
                                             </div>
                                             <button
                                                 onClick={() => handleRemoveAccount(email)}

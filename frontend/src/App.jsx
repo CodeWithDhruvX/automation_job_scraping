@@ -10,7 +10,8 @@ import { SmartTabModal } from './components/SmartTabModal'
 import { RejectedJobsView } from './components/RejectedJobsView'
 import GoogleRemindersView from './components/GoogleRemindersView'
 import { InviteLoggerView } from './components/InviteLoggerView'
-import { LayoutDashboard, RefreshCw, Trash2, X, Download, ExternalLink, Settings, Upload, Sparkles, Calendar, Mail } from 'lucide-react'
+import { GmailOrganizerView } from './components/GmailOrganizerView'
+import { LayoutDashboard, RefreshCw, Trash2, X, Download, ExternalLink, Settings, Upload, Sparkles, Calendar, Mail, Inbox, Moon, Sun, CheckSquare, Square, Edit } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 // Configure Axios base URL
@@ -32,6 +33,21 @@ function App() {
   const [showRejectedJobsView, setShowRejectedJobsView] = useState(false)
   const [showGoogleRemindersView, setShowGoogleRemindersView] = useState(false)
   const [showInviteLoggerView, setShowInviteLoggerView] = useState(false)
+  const [showGmailOrganizerView, setShowGmailOrganizerView] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode')
+    return saved ? JSON.parse(saved) : false
+  })
+
+  // Apply dark mode class to html element
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+    localStorage.setItem('darkMode', JSON.stringify(isDarkMode))
+  }, [isDarkMode])
 
   // Smart Tab State
   const [showSmartTabView, setShowSmartTabView] = useState(false)
@@ -53,6 +69,10 @@ function App() {
       return []
     }
   })
+
+  // Multi-Select Tab State
+  const [isTabSelectionMode, setIsTabSelectionMode] = useState(false)
+  const [selectedSearchIds, setSelectedSearchIds] = useState([])
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -110,6 +130,8 @@ function App() {
       setShowGoogleRemindersView(true)
     } else if (window.location.hash === '#invite-logger') {
       setShowInviteLoggerView(true)
+    } else if (window.location.hash === '#gmail-organizer') {
+      setShowGmailOrganizerView(true)
     }
   }, [])
 
@@ -141,12 +163,21 @@ function App() {
         setShowSmartTabView(false)
         setShowRejectedJobsView(false)
         setShowGoogleRemindersView(false)
+        setShowGmailOrganizerView(false)
+      } else if (window.location.hash === '#gmail-organizer') {
+        setShowGmailOrganizerView(true)
+        setShowAppliedJobsView(false)
+        setShowSmartTabView(false)
+        setShowRejectedJobsView(false)
+        setShowGoogleRemindersView(false)
+        setShowInviteLoggerView(false)
       } else {
         setShowAppliedJobsView(false)
         setShowSmartTabView(false)
         setShowRejectedJobsView(false)
         setShowGoogleRemindersView(false)
         setShowInviteLoggerView(false)
+        setShowGmailOrganizerView(false)
       }
     }
 
@@ -379,6 +410,42 @@ function App() {
   const handleTabClick = (searchId) => {
     setActiveSearchId(searchId)
     setSelectedJobUrls([])
+  }
+
+  const handleDeleteSelectedSearches = async () => {
+    if (selectedSearchIds.length === 0) return
+
+    if (window.confirm(`Are you sure you want to delete ${selectedSearchIds.length} selected search(es)? All jobs in these searches will be removed.`)) {
+      try {
+        await api.post('/searches/delete-list', { search_ids: selectedSearchIds })
+
+        // Update local state
+        const newSearches = searches.filter(s => !selectedSearchIds.includes(s.search_id))
+        setSearches(newSearches)
+        setSelectedSearchIds([])
+        setIsTabSelectionMode(false)
+
+        // If active search was deleted, switch to all
+        if (selectedSearchIds.includes(activeSearchId)) {
+          setActiveSearchId('all')
+          fetchJobs('all')
+        }
+
+        // Refresh searches to be sure
+        fetchSearches()
+        alert('Selected searches deleted successfully.')
+      } catch (err) {
+        alert('Failed to delete searches: ' + err.message)
+      }
+    }
+  }
+
+  const toggleSearchSelection = (searchId) => {
+    setSelectedSearchIds(prev =>
+      prev.includes(searchId)
+        ? prev.filter(id => id !== searchId)
+        : [...prev, searchId]
+    )
   }
 
   const handleDeleteSearch = async (e, searchId) => {
@@ -618,8 +685,8 @@ function App() {
 
   if (showInviteLoggerView) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-        <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+      <div className={`min-h-screen ${isDarkMode ? 'dark' : ''} bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-300`}>
+        <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.hash = ''}>
             {/* Back to Dashboard */}
             <div className="bg-blue-600 p-2 rounded-lg text-white">
@@ -648,9 +715,41 @@ function App() {
     )
   }
 
+  if (showGmailOrganizerView) {
+    return (
+      <div className={`min-h-screen ${isDarkMode ? 'dark' : ''} bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-300`}>
+        <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.hash = ''}>
+            {/* Back to Dashboard */}
+            <div className="bg-blue-600 p-2 rounded-lg text-white">
+              <LayoutDashboard size={20} />
+            </div>
+            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+              JobSpy Dashboard
+            </h1>
+          </div>
+          {/* Simple Close Button */}
+          <button
+            onClick={() => {
+              window.location.hash = ''
+              setShowGmailOrganizerView(false)
+            }}
+            className="p-2 hover:bg-slate-100 rounded-full"
+          >
+            <X size={24} />
+          </button>
+        </header>
+
+        <main className="p-6 mx-auto max-w-full h-full">
+          <GmailOrganizerView />
+        </main>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+    <div className={`min-h-screen ${isDarkMode ? 'dark' : ''} bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-300`}>
+      <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-2">
           <div className="bg-blue-600 p-2 rounded-lg text-white">
             <LayoutDashboard size={20} />
@@ -666,9 +765,9 @@ function App() {
               window.location.hash = 'smart-tabs'
               setShowSmartTabView(true)
             }}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-fuchsia-600 to-pink-600 border border-transparent rounded-md hover:from-fuchsia-700 hover:to-pink-700 transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-fuchsia-600 to-pink-600 border border-transparent rounded-lg hover:from-fuchsia-700 hover:to-pink-700 transition-all shadow-md shadow-fuchsia-600/20 active:scale-95"
           >
-            <Sparkles size={16} fill="currentColor" className="text-white/20" />
+            <Sparkles size={16} fill="currentColor" className="text-white/40" />
             Smart Tab
           </button>
 
@@ -689,7 +788,7 @@ function App() {
               window.location.hash = 'invite-logger'
               setShowInviteLoggerView(true)
             }}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors shadow-sm"
           >
             <Mail size={16} />
             Invite Logger
@@ -697,10 +796,21 @@ function App() {
 
           <button
             onClick={() => {
+              window.location.hash = 'gmail-organizer'
+              setShowGmailOrganizerView(true)
+            }}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors shadow-sm"
+          >
+            <Inbox size={16} />
+            Gmail Organizer
+          </button>
+
+          <button
+            onClick={() => {
               window.location.hash = 'google-reminders'
               setShowGoogleRemindersView(true)
             }}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors shadow-sm"
           >
             <Calendar size={16} />
             Google Reminders
@@ -711,35 +821,42 @@ function App() {
               window.location.hash = 'applied-jobs'
               setShowAppliedJobsView(true)
             }}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors shadow-sm"
           >
             Applied Jobs
           </button>
-          <label className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors cursor-pointer select-none">
+          <label className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer select-none">
             <Upload size={16} />
             Import
             <input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} className="hidden" />
           </label>
           <button
             onClick={() => setShowSettings(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
           >
             <Settings size={16} />
             Settings
           </button>
           <button
             onClick={handleClearAllJobs}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-red-700 rounded-md hover:bg-red-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-600 dark:bg-red-700 border border-red-700 dark:border-red-800 rounded-lg hover:bg-red-700 dark:hover:bg-red-800 transition-all shadow-md shadow-red-600/20 active:scale-95"
           >
             <Trash2 size={16} />
             Clear All
+          </button>
+          <button
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          >
+            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
           <button
             onClick={() => {
               fetchJobs(activeSearchId)
               fetchSearches()
             }}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
           >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             Refresh
@@ -771,14 +888,41 @@ function App() {
 
         {(searches.length > 0 || savedJobs.length > 0 || allJobs.filter(j => j.my_status === 'APPLIED').length > 0) && (
           <div className="border-b border-slate-200 overflow-x-auto">
-            <nav className="flex space-x-4 pb-1 min-w-max" aria-label="Tabs">
+            <nav className="flex space-x-2 pb-1 min-w-max items-end" aria-label="Tabs">
+              {searches.length > 0 && (
+                <div className="pb-2 px-2 border-r border-slate-200 mr-2 flex items-center">
+                  <button
+                    onClick={() => {
+                      setIsTabSelectionMode(!isTabSelectionMode)
+                      setSelectedSearchIds([])
+                    }}
+                    className={`p-2 rounded-lg transition-colors ${isTabSelectionMode
+                      ? 'bg-blue-100 text-blue-600'
+                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                      }`}
+                    title={isTabSelectionMode ? "Cancel Selection" : "Manage Tabs"}
+                  >
+                    <Edit size={16} />
+                  </button>
+
+                  {isTabSelectionMode && selectedSearchIds.length > 0 && (
+                    <button
+                      onClick={handleDeleteSelectedSearches}
+                      className="ml-2 flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-2 py-1.5 rounded-md transition-colors animate-in fade-in slide-in-from-left-2 duration-200"
+                    >
+                      <Trash2 size={12} />
+                      Delete ({selectedSearchIds.length})
+                    </button>
+                  )}
+                </div>
+              )}
               <button
                 onClick={() => handleTabClick('all')}
                 className={`
                   px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 
                   ${activeSearchId === 'all'
-                    ? 'border-blue-600 text-blue-600 bg-white'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                    ? 'border-blue-600 text-blue-600 bg-white dark:bg-slate-800'
+                    : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'
                   }
                 `}
               >
@@ -791,8 +935,8 @@ function App() {
                   className={`
                   px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 
                   ${activeSearchId === 'saved'
-                      ? 'border-blue-600 text-blue-600 bg-white'
-                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                      ? 'border-blue-600 text-blue-600 bg-white dark:bg-slate-800'
+                      : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'
                     }
                 `}
                 >
@@ -806,8 +950,8 @@ function App() {
                   className={`
                   px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 
                   ${activeSearchId === 'applied'
-                      ? 'border-blue-600 text-blue-600 bg-white'
-                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                      ? 'border-blue-600 text-blue-600 bg-white dark:bg-slate-800'
+                      : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'
                     }
                 `}
                 >
@@ -821,26 +965,49 @@ function App() {
                 return (
                   <button
                     key={search.search_id}
-                    onClick={() => handleTabClick(search.search_id)}
+                    onClick={() => {
+                      if (isTabSelectionMode) {
+                        toggleSearchSelection(search.search_id)
+                      } else {
+                        handleTabClick(search.search_id)
+                      }
+                    }}
                     className={`
-                    px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 flex flex-col items-start relative group pr-8
-                    ${activeSearchId === search.search_id
-                        ? 'border-blue-600 text-blue-600 bg-white'
-                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                    px-4 py-2 text-sm font-medium rounded-t-lg transition-all border-b-2 flex flex-col items-start relative group pr-8 select-none
+                    ${isTabSelectionMode && selectedSearchIds.includes(search.search_id)
+                        ? 'bg-blue-50 border-blue-400'
+                        : activeSearchId === search.search_id && !isTabSelectionMode
+                          ? 'border-blue-600 text-blue-600 bg-white dark:bg-slate-800'
+                          : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'
                       }
                   `}
                   >
-                    <span className="whitespace-nowrap max-w-[150px] truncate" title={displayName}>{displayName}</span>
-                    <span className="text-xs opacity-70 whitespace-nowrap">
+                    <div className="flex items-center gap-2 max-w-[150px]">
+                      {isTabSelectionMode && (
+                        <div className={`
+                                flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors
+                                ${selectedSearchIds.includes(search.search_id)
+                            ? 'bg-blue-500 border-blue-500 text-white'
+                            : 'border-slate-400 bg-white'
+                          }
+                            `}>
+                          {selectedSearchIds.includes(search.search_id) && <CheckSquare size={10} fill="currentColor" />}
+                        </div>
+                      )}
+                      <span className="whitespace-nowrap truncate" title={displayName}>{displayName}</span>
+                    </div>
+                    <span className="text-xs opacity-70 whitespace-nowrap pl-6">
                       {search.search_location} • {search.job_count} jobs
                     </span>
 
-                    <div
-                      onClick={(e) => handleDeleteSearch(e, search.search_id)}
-                      className="absolute right-1 top-2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <X size={14} />
-                    </div>
+                    {!isTabSelectionMode && (
+                      <div
+                        onClick={(e) => handleDeleteSearch(e, search.search_id)}
+                        className="absolute right-1 top-2 p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <X size={14} />
+                      </div>
+                    )}
                   </button>
                 )
               })}
@@ -850,22 +1017,22 @@ function App() {
         }
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <div className="text-slate-500 text-sm font-medium">Total Jobs</div>
-            <div className="text-2xl font-bold mt-1">{jobs.length}</div>
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
+            <div className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Jobs</div>
+            <div className="text-2xl font-bold mt-1 text-slate-900 dark:text-slate-100">{jobs.length}</div>
           </div>
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <div className="text-slate-500 text-sm font-medium">New</div>
-            <div className="text-2xl font-bold mt-1 text-green-600">
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
+            <div className="text-slate-500 dark:text-slate-400 text-sm font-medium">New</div>
+            <div className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">
               {jobs.filter(j => j.my_status === 'NEW').length}
             </div>
           </div>
           <button
             onClick={() => handleTabClick('applied')}
-            className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer text-left w-full"
+            className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-500 transition-all cursor-pointer text-left w-full"
           >
-            <div className="text-slate-500 text-sm font-medium">Applied</div>
-            <div className="text-2xl font-bold mt-1 text-blue-600">
+            <div className="text-slate-500 dark:text-slate-400 text-sm font-medium">Applied</div>
+            <div className="text-2xl font-bold mt-1 text-blue-600 dark:text-blue-400">
               {allJobs.filter(j => j.my_status === 'APPLIED').length}
             </div>
           </button>
@@ -924,7 +1091,7 @@ function App() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden min-h-[500px]">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden min-h-[500px] transition-colors">
           <JobTable
             jobs={jobs}
             onJobUpdate={handleJobUpdate}

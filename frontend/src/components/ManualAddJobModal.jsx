@@ -85,21 +85,21 @@ export function ManualAddJobModal({ onClose, onJobAdded }) {
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-700 transition-colors">
 
                 {/* Header */}
-                <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                             <Sparkles className="text-amber-500" size={24} />
                             Add Job Manually
                         </h2>
-                        <p className="text-sm text-slate-500 mt-1">Paste a URL to auto-fill details, or enter them manually.</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Paste a URL to auto-fill details, or enter them manually.</p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition-colors"
+                        className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors"
                     >
                         <X size={20} />
                     </button>
@@ -110,7 +110,7 @@ export function ManualAddJobModal({ onClose, onJobAdded }) {
 
                     {/* Magic Input */}
                     <div className="mb-8 relative">
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                             Job Link (Magic Paste) <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
@@ -126,7 +126,7 @@ export function ManualAddJobModal({ onClose, onJobAdded }) {
                                 }}
                                 onBlur={(e) => handleMagicPaste(e.target.value)}
                                 placeholder="https://nakuri.com/jobs/..."
-                                className="w-full pl-10 pr-12 py-3 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all shadow-sm"
+                                className="w-full pl-10 pr-12 py-3 rounded-xl border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 outline-none transition-all shadow-sm"
                             />
                             {magicLoading && (
                                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -142,24 +142,24 @@ export function ManualAddJobModal({ onClose, onJobAdded }) {
                     <form id="add-job-form" onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Job Title</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Job Title</label>
                                 <input
                                     type="text"
                                     required
                                     value={formData.title}
                                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
                                     placeholder="e.g. Senior Product Designer"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Company</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Company</label>
                                 <input
                                     type="text"
                                     required
                                     value={formData.company}
                                     onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
                                     placeholder="e.g. Acme Corp"
                                 />
                             </div>
@@ -167,33 +167,33 @@ export function ManualAddJobModal({ onClose, onJobAdded }) {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Location</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Location</label>
                                 <input
                                     type="text"
                                     value={formData.location}
                                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
                                     placeholder="e.g. New York, NY"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Site / Source</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Site / Source</label>
                                 <input
                                     type="text"
                                     value={formData.site}
                                     onChange={(e) => setFormData({ ...formData, site: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
                                 />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-3 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Job Type</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Job Type</label>
                                 <select
                                     value={formData.job_type}
                                     onChange={(e) => setFormData({ ...formData, job_type: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-blue-500 outline-none bg-white"
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 focus:border-blue-500 outline-none bg-white dark:bg-slate-900"
                                 >
                                     <option value="">Select...</option>
                                     <option value="Full-time">Full-time</option>
@@ -203,34 +203,34 @@ export function ManualAddJobModal({ onClose, onJobAdded }) {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Min Salary</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Min Salary</label>
                                 <input
                                     type="number"
                                     value={formData.min_amount}
                                     onChange={(e) => setFormData({ ...formData, min_amount: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-blue-500 outline-none"
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 focus:border-blue-500 outline-none"
                                     placeholder="0"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Max Salary</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Max Salary</label>
                                 <input
                                     type="number"
                                     value={formData.max_amount}
                                     onChange={(e) => setFormData({ ...formData, max_amount: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-blue-500 outline-none"
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 focus:border-blue-500 outline-none"
                                     placeholder="0"
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
                             <textarea
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 rows={4}
-                                className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors resize-none"
+                                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors resize-none"
                                 placeholder="Paste or type job description here..."
                             />
                         </div>
@@ -239,11 +239,11 @@ export function ManualAddJobModal({ onClose, onJobAdded }) {
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                <div className="p-6 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3 transition-colors">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors font-medium"
+                        className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors font-medium"
                     >
                         Cancel
                     </button>

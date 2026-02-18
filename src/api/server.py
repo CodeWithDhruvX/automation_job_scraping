@@ -20,6 +20,7 @@ from src.api.reminder_routes import router as reminder_router
 from src.api.util_routes import router as util_router
 from src.connectors.jobspy_connector import JobSpyConnector
 from src.api.invite_routes import router as invite_router
+from src.api.gmail_routes import router as gmail_router
 
 app = FastAPI(title="Job Application Assistant API")
 
@@ -36,6 +37,7 @@ app.include_router(auth_router)
 app.include_router(reminder_router)
 app.include_router(util_router)
 app.include_router(invite_router)
+app.include_router(gmail_router)
 
 job_manager = JobManager()
 
@@ -224,6 +226,18 @@ def delete_search(search_id: str):
          # For UI simplicity, just return success message.
          pass
     return {"message": f"Search {search_id} deleted"}
+
+@app.post("/api/searches/delete-list")
+def delete_search_list(payload: Dict[str, List[str]]):
+    """
+    Deletes multiple search sessions. Payload: {"search_ids": ["id1", "id2"]}
+    """
+    search_ids = payload.get("search_ids", [])
+    if not search_ids:
+        raise HTTPException(status_code=400, detail="No search_ids provided")
+    
+    count = job_manager.delete_searches(search_ids)
+    return {"status": "deleted", "jobs_removed": count, "searches_removed": len(search_ids)}
 
 class ExportRequest(BaseModel):
     search_id: Optional[str] = None

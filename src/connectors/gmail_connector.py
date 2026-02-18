@@ -15,16 +15,17 @@ from src.core.recruiter_analyzer import RecruiterAnalyzer
 
 # If modifying these scopes, delete the token files.
 SCOPES = [
-    'https://www.googleapis.com/auth/gmail.readonly',
+    'https://www.googleapis.com/auth/gmail.modify',
     'https://www.googleapis.com/auth/calendar.events'
 ]
 
 class GmailConnector:
-    def __init__(self, credentials_file='google_client_secrets.json', tokens_dir='tokens'):
+    def __init__(self, credentials_file='google_client_secrets.json', tokens_dir='tokens', dry_run=False):
         self.credentials_file = credentials_file
         self.tokens_dir = tokens_dir
         self.creds = None
         self._cancel_scan = False
+        self.dry_run = dry_run
         
         # Ensure tokens directory exists
         if not os.path.exists(self.tokens_dir):
@@ -36,19 +37,23 @@ class GmailConnector:
             if not os.listdir(self.tokens_dir):
                 self._migrate_legacy_token()
             else:
-                # If tokens exist, maybe rename/archive legacy token so we don't check it again?
-                # Or just ignore it.
                 pass
         
         self.recruiter_analyzer = RecruiterAnalyzer()
+        self.existing_labels = {} # Cache for labels {name: id}
 
     def _migrate_legacy_token(self):
         """Migrates the legacy token.json to the new tokens directory structure."""
         try:
             print("Migrating legacy token.json...")
-            # Use SCOPES variable which no longer has userinfo.email, so it matches legacy token
-            creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-            
+            # Use rules that might match legacy scopes
+            legacy_scopes = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/calendar.events']
+            try:
+                creds = Credentials.from_authorized_user_file('token.json', legacy_scopes)
+            except:
+                # If loading with specific scopes fails, try generic
+                creds = Credentials.from_authorized_user_file('token.json')
+
             if creds.valid or (creds.expired and creds.refresh_token):
                 if creds.expired:
                     try:
@@ -56,8 +61,9 @@ class GmailConnector:
                     except Exception as e:
                         print(f"Failed to refresh legacy token: {e}")
                         return
+                
+                print("NOTE: Scopes have changed to include 'modify'. You may need to re-authenticate if you see 403 errors.")
 
-                # Get email to name the file
                 try:
                     service = build('gmail', 'v1', credentials=creds)
                     profile = service.users().getProfile(userId='me').execute()
@@ -68,7 +74,6 @@ class GmailConnector:
                         f.write(creds.to_json())
                     
                     print(f"Migrated token.json to {new_path}")
-                    # Rename legacy token to avoid re-migration attempts
                     os.rename('token.json', 'token.json.bak')
                 except Exception as e:
                     print(f"Error fetching profile for migration: {e}")
@@ -143,6 +148,87 @@ class GmailConnector:
             print(f"Error loading services for {email}: {e}")
             return None, None
 
+    def _ensure_label(self, service_gmail, label_name):
+        """Ensures a label exists, returns its ID."""
+        if self.dry_run:
+            return f"LABEL_ID_{label_name}"
+
+        if label_name in self.existing_labels:
+            return self.existing_labels[label_name]
+            
+        try:
+            # Check if cached first, if not, maybe list again or just try create?
+            # Listing is safer but costly. Let's assume list is done at start of scan.
+            # If not in existing_labels, it probably doesn't exist.
+            
+            # Try to find it again in case it was missed or created elsewhere
+            # Actually, to be safe, just try create and catch "already exists" if we want to be atomic,
+            # but Gmail API listing is better.
+            
+            # Create if not exists
+            print(f"Creating label: {label_name}")
+            label_object = {
+                'name': label_name, 
+                'labelListVisibility': 'labelShow', 
+                'messageListVisibility': 'show'
+            }
+            try:
+                created_label = service_gmail.users().labels().create(userId='me', body=label_object).execute()
+                self.existing_labels[created_label['name']] = created_label['id']
+                return created_label['id']
+            except HttpError as e:
+                if e.resp.status == 409: # Already exists
+                    # Fetch ID
+                    results = service_gmail.users().labels().list(userId='me').execute()
+                    labels = results.get('labels', [])
+                    for label in labels:
+                        self.existing_labels[label['name']] = label['id']
+                        if label['name'].lower() == label_name.lower():
+                            return label['id']
+                else:
+                    raise e
+                    
+        except Exception as e:
+            print(f"Error managing label {label_name}: {e}")
+            return None
+
+    def _apply_labels(self, service_gmail, message_id, label_names):
+        """Applies a list of labels to a message."""
+        if not label_names: return
+        
+        label_ids = []
+        for name in label_names:
+            lid = self._ensure_label(service_gmail, name)
+            if lid: label_ids.append(lid)
+            
+        if not label_ids: return
+
+        if self.dry_run:
+            print(f"[DRY RUN] Would remove 'UNREAD' and apply labels {label_names} to message {message_id}")
+            return
+
+        try:
+            # Add labels and remove UNREAD (mark as read)
+            # Wait, do we want to mark as read? Requirement says "Check unread...". 
+            # Usuaully organizing means processing, so marking as read is good.
+            # But let's check requirement: "Mark as read/unread" is listed as capability. "Track unread recruiter emails... if older than 3 days -> Pending Action"
+            # If we organize it, maybe we should keep it unread if it requires action?
+            # Requirement says: "Your inbox becomes... Automatically categorized".
+            # Usually automated filing entails archiving or moving from inbox.
+            # Let's just Apply Labels. User can decide if they want to archive.
+            # actually, let's NOT remove UNREAD by default unless specified. 
+            # But usually organized emails shouldn't clutter "Unread" if they are low priority.
+            # Let's just add labels for now. 
+            
+            body = {
+                'addLabelIds': label_ids
+                # 'removeLabelIds': ['UNREAD'] 
+            }
+            service_gmail.users().messages().modify(userId='me', id=message_id, body=body).execute()
+            print(f"Applied labels {label_names} to {message_id}")
+        except Exception as e:
+            print(f"Error applying labels to {message_id}: {e}")
+
     def scan_emails(self, days=1, start_date=None, end_date=None, target_accounts=None):
         """Scans emails across all or specified accounts."""
         self._cancel_scan = False
@@ -150,7 +236,6 @@ class GmailConnector:
         
         accounts = self.get_accounts()
         if target_accounts:
-            # target_accounts should be a list of emails
             accounts = [a for a in accounts if a in target_accounts]
             
         if not accounts:
@@ -158,22 +243,29 @@ class GmailConnector:
             return []
             
         for email in accounts:
-            if self._cancel_scan:
-                break
+            if self._cancel_scan: break
                 
             print(f"--- Scanning Account: {email} ---")
             service_gmail, _ = self._get_services(email)
             
             if service_gmail:
+                # Refresh label cache for this account
+                self.existing_labels = {}
+                try:
+                    results = service_gmail.users().labels().list(userId='me').execute()
+                    for label in results.get('labels', []):
+                        self.existing_labels[label['name']] = label['id']
+                except:
+                    pass
+                    
                 invites = self._scan_account_invites(service_gmail, email, days, start_date, end_date)
                 all_invites.extend(invites)
             else:
-                print(f"Skipping {email} (Auth failed)")
+                print(f"Skipping {email} (Auth failed or re-auth required)")
                 
         return all_invites
 
     def _scan_account_invites(self, service_gmail, email_address, days, start_date, end_date):
-        """Internal method to scan a specific account using the provided service."""
         invites = []
         
         # Determine date query
@@ -186,7 +278,6 @@ class GmailConnector:
                 e_date_query = e_dt_plus_1.strftime("%Y/%m/%d")
             except:
                  e_date_query = e_date
-
             query = f'after:{s_date} before:{e_date_query}'
         else:
             date_query = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y/%m/%d")
@@ -203,20 +294,19 @@ class GmailConnector:
                 
                 if not messages: break
 
-                print(f"[{email_address}] Processing {len(messages)} emails from list...")
+                print(f"[{email_address}] Processing {len(messages)} emails...")
                 
                 batch_size = 20
                 for i in range(0, len(messages), batch_size):
                     if self._cancel_scan: break
-                    
                     sub_batch_msgs = messages[i:i + batch_size]
                     
                     batch_results = []
                     def batch_callback(request_id, response, exception):
                         if exception:
-                            print(f"Error fetching message {request_id}: {exception}")
+                             print(f"Error fetching message {request_id}: {exception}")
                         else:
-                            batch_results.append(response)
+                             batch_results.append(response)
 
                     batch = service_gmail.new_batch_http_request(callback=batch_callback)
                     for message in sub_batch_msgs:
@@ -228,83 +318,87 @@ class GmailConnector:
                             headers = msg['payload']['headers']
                             subject = next((h['value'] for h in headers if h['name'] == 'Subject'), 'No Subject')
                             sender = next((h['value'] for h in headers if h['name'] == 'From'), 'Unknown Sender')
-                            date_str = next((h['value'] for h in headers if h['name'] == 'Date'), '')
-                            try:
-                                detection_timestamp = parsedate_to_datetime(date_str).isoformat()
-                            except:
-                                detection_timestamp = datetime.datetime.now().isoformat()
-                            
-                            # Different base URL for threads/messages? No, generic works, handled by browser auth state
-                            # However, opening multiple accounts in browser requires /u/0, /u/1 etc.
-                            # We can't know which /u/X the user is logged into. 
-                            # But we can provide the email in the search query maybe? 
-                            # https://mail.google.com/mail/u/?authuser=user@example.com is not standard...
-                            # Actually https://mail.google.com/mail/u/0/?authuser=EMAIL works!
                             email_url = f"https://mail.google.com/mail/u/0/?authuser={email_address}#all/{msg['threadId']}"
-
-                            if self._has_ics_attachment(msg['payload']):
-                                print(f"[{email_address}] FOUND (ICS): {subject}")
-                                body = self._get_email_body(msg['payload'])
-                                extracted_link = self._extract_best_link(body)
+                            body = self._get_email_body(msg['payload'])
+                            
+                            # 1. Recruiter Analysis & Organization
+                            analysis = self.recruiter_analyzer.analyze_email(sender, subject, body)
+                            
+                            if analysis['is_recruiter']:
+                                classification = analysis['classification']
+                                labels_to_apply = []
                                 
+                                # Root Label
+                                labels_to_apply.append("Recruiter")
+                                
+                                # Source Label
+                                source = classification.get('source', 'Direct')
+                                labels_to_apply.append(f"Recruiter/{source}")
+                                
+                                # Priority Label
+                                priority = classification.get('priority', 'Low')
+                                labels_to_apply.append(f"Priority/{priority}")
+                                
+                                # Company Label
+                                company = classification.get('company')
+                                if company and company != "Unknown":
+                                    labels_to_apply.append(f"Company/{company}")
+                                    
+                                print(f"[{email_address}] RECRUITER DETECTED: {subject} -> {labels_to_apply}")
+                                self._apply_labels(service_gmail, msg['id'], labels_to_apply)
+                                
+                                # Add to invites list for UI visibility as well
                                 invites.append({
                                     'id': msg['id'],
                                     'account_email': email_address,
-                                    'email_id': msg['id'],
-                                    'thread_id': msg['threadId'],
                                     'subject': subject,
                                     'sender': sender,
                                     'email_url': email_url,
+                                    'meeting_link': email_url, 
+                                    'detection_timestamp': datetime.datetime.now().isoformat(),
+                                    'status': 'ORGANIZED',
+                                    'detection_method': 'RECRUITER_RULE',
+                                    'reasons': classification['reasons'],
+                                    'source': source,
+                                    'company': company,
+                                    'priority': priority
+                                })
+                                continue 
+                            
+                            # 2. Existing Calendar/Meeting Detection
+                            if self._has_ics_attachment(msg['payload']):
+                                print(f"[{email_address}] FOUND (ICS): {subject}")
+                                extracted_link = self._extract_best_link(body)
+                                invites.append({
+                                    'id': msg['id'],
+                                    'account_email': email_address,
+                                    'email_url': email_url,
+                                    'subject': subject,
+                                    'sender': sender,
                                     'meeting_link': extracted_link or email_url,
                                     'meeting_time': self._extract_ics_meeting_time(msg['payload'], msg['id'], service_gmail),
-                                    'detection_timestamp': detection_timestamp,
+                                    'timestamp': datetime.datetime.now().isoformat(),
                                     'status': 'PENDING',
                                     'detection_method': 'ICS_ATTACHMENT'
                                 })
-                                continue
-
-                            body = self._get_email_body(msg['payload'])
-                            valid_link = self._extract_best_link(body)
-
-                            if valid_link:
+                            
+                            elif self._extract_best_link(body):
+                                valid_link = self._extract_best_link(body)
                                 print(f"[{email_address}] FOUND (Link): {subject}")
                                 invites.append({
                                     'id': msg['id'],
                                     'account_email': email_address,
-                                    'email_id': msg['id'],
-                                    'thread_id': msg['threadId'],
+                                    'email_url': email_url,
                                     'subject': subject,
                                     'sender': sender,
-                                    'email_url': email_url,
                                     'meeting_link': valid_link,
-                                    'detection_timestamp': detection_timestamp,
+                                    'timestamp': datetime.datetime.now().isoformat(),
                                     'status': 'PENDING',
                                     'detection_method': 'LINK_PATTERN'
                                 })
-                                continue # Prioritize Link over Recruiter check
-                            
-                            # Fallback: Check if it's a recruiter email
-                            recruiter_check = self.recruiter_analyzer.analyze_email(sender, subject, body)
-                            if recruiter_check['is_recruiter']:
-                                print(f"[{email_address}] FOUND (Recruiter): {subject} (Score: {recruiter_check['score']})")
-                                invites.append({
-                                    'id': msg['id'],
-                                    'account_email': email_address,
-                                    'email_id': msg['id'],
-                                    'thread_id': msg['threadId'],
-                                    'subject': subject,
-                                    'sender': sender,
-                                    'email_url': email_url,
-                                    'meeting_link': email_url, # Fallback to email itself if no meeting link
-                                    'detection_timestamp': detection_timestamp,
-                                    'status': 'PENDING',
-                                    'detection_method': 'RECRUITER_PATTERN',
-                                    'reasons': recruiter_check['reasons'],
-                                    'source': recruiter_check['source'],
-                                    'company': recruiter_check['company']
-                                })
+
                         except Exception as e:
-                            print(f"Error processing message {msg.get('id', 'unknown')}: {e}")
+                            print(f"Error processing message {msg.get('id')}: {e}")
                             traceback.print_exc()
                     
                     time.sleep(1)
@@ -378,26 +472,21 @@ class GmailConnector:
         return body
 
     def add_to_calendar(self, invite_details, duration_minutes=30):
-        """Adds an event to the Calendar of the account that received the invite."""
         email = invite_details.get('account_email')
-        
-        # Fallback if no account_email (legacy data)
         if not email:
             accounts = self.get_accounts()
-            if accounts:
-                email = accounts[0]
-            else:
-                return {"error": "No accounts connected"}
+            email = accounts[0] if accounts else None
+        
+        if not email: return {"error": "No accounts"}
 
         _, service_calendar = self._get_services(email)
-        if not service_calendar:
-             return {"error": f"Calendar service not initialized for {email}"}
+        if not service_calendar: return {"error": "Service not init"}
 
         try:
             start_time = datetime.datetime.now() + datetime.timedelta(hours=1)
             end_time = start_time + datetime.timedelta(minutes=duration_minutes)
             
-            description = f"Meeting Link: {invite_details.get('meeting_link')}\n\nFrom Email: {invite_details.get('email_url')}\n\nDetected via: {invite_details.get('detection_method', 'Unknown')}\n\nAccount: {email}"
+            description = f"Meeting Link: {invite_details.get('meeting_link')}\n\nFrom: {invite_details.get('email_url')}"
 
             event = {
                 'summary': f"Meeting: {invite_details.get('subject')}",
@@ -413,38 +502,9 @@ class GmailConnector:
         except HttpError as error:
             print(f"An error occurred: {error}")
             return {"error": str(error)}
-
-    def _get_ics_content_recursive(self, payload, message_id, service_gmail):
-        if payload.get('mimeType') == 'text/calendar':
-            body = payload.get('body', {})
-            data = body.get('data')
-            if data:
-                try:
-                    return base64.urlsafe_b64decode(data).decode()
-                except Exception as e:
-                    print(f"Error decoding inline ICS: {e}")
-            
-            attachment_id = body.get('attachmentId')
-            if attachment_id and message_id and service_gmail:
-                try:
-                    attachment = service_gmail.users().messages().attachments().get(
-                        userId='me', messageId=message_id, id=attachment_id
-                    ).execute()
-                    data = attachment.get('data')
-                    if data:
-                        return base64.urlsafe_b64decode(data).decode()
-                except Exception as e:
-                    print(f"Error fetching attachment: {e}")
-        
-        if 'parts' in payload:
-            for part in payload['parts']:
-                content = self._get_ics_content_recursive(part, message_id, service_gmail)
-                if content:
-                    return content
-        return None
-
+    
     def _extract_ics_meeting_time(self, payload, message_id, service_gmail):
-        try:
+         try:
             content = self._get_ics_content_recursive(payload, message_id, service_gmail)
             if content:
                 vevent_match = re.search(r'BEGIN:VEVENT(.*?)END:VEVENT', content, re.DOTALL)
@@ -464,6 +524,25 @@ class GmailConnector:
                         return dt.isoformat()
                     except ValueError:
                         return None
-        except Exception:
+         except Exception:
             return None
+         return None
+
+    def _get_ics_content_recursive(self, payload, message_id, service_gmail):
+        if payload.get('mimeType') == 'text/calendar':
+            data = payload.get('body', {}).get('data')
+            if data: return base64.urlsafe_b64decode(data).decode()
+            
+            att_id = payload.get('body', {}).get('attachmentId')
+            if att_id and message_id and service_gmail:
+                try:
+                    att = service_gmail.users().messages().attachments().get(
+                        userId='me', messageId=message_id, id=att_id).execute()
+                    if att.get('data'): return base64.urlsafe_b64decode(att['data']).decode()
+                except: pass
+        
+        if 'parts' in payload:
+            for part in payload['parts']:
+                res = self._get_ics_content_recursive(part, message_id, service_gmail)
+                if res: return res
         return None

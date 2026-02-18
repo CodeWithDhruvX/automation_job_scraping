@@ -195,6 +195,22 @@ class JobManager:
             return True
         return False
 
+    def delete_searches(self, search_ids: List[str]) -> int:
+        """Deletes jobs for multiple search_ids. Returns count of deleted jobs."""
+        initial_count = len(self.jobs)
+        
+        # Filter out jobs that belong to any of the search_ids
+        self.jobs = {
+            url: job for url, job in self.jobs.items() 
+            if job.get('search_id') not in search_ids
+        }
+        
+        deleted_count = initial_count - len(self.jobs)
+        if deleted_count > 0:
+            self.save_data()
+            
+        return deleted_count
+
     def delete_job(self, job_url: str):
         """Deletes a single job by URL."""
         if job_url in self.jobs:

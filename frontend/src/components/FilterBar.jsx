@@ -19,8 +19,8 @@ export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersCh
     }
 
     return (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 relative overflow-hidden">
-            <div className="flex items-center gap-2 mb-4 text-slate-700 font-semibold border-b border-slate-100 pb-2">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 relative overflow-hidden transition-colors">
+            <div className="flex items-center gap-2 mb-4 text-slate-700 dark:text-slate-200 font-semibold border-b border-slate-100 dark:border-slate-700 pb-2">
                 <Filter size={18} />
                 Search Filters
             </div>
@@ -29,17 +29,17 @@ export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersCh
                 {/* Row 1: Title & Location */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1">Job Title / Keywords</label>
+                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Job Title / Keywords</label>
                         <input
                             type="text"
                             name="title"
                             value={filters.title}
                             onChange={handleChange}
                             placeholder="e.g. Software Engineer"
-                            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-sm"
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/20 focus:border-blue-400 dark:bg-slate-900 dark:text-slate-100 text-sm"
                             required
                         />
-                        <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-600 mt-1.5">
+                        <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-600 dark:text-slate-400 mt-1.5">
                             <input
                                 type="checkbox"
                                 name="exactMatchTitle"
@@ -51,45 +51,45 @@ export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersCh
                         </label>
                     </div>
                     <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1">Location</label>
+                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Location</label>
                         <input
                             type="text"
                             name="location"
                             value={filters.location}
                             onChange={handleChange}
                             placeholder="e.g. Remote, NY"
-                            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-sm"
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/20 focus:border-blue-400 dark:bg-slate-900 dark:text-slate-100 text-sm"
                         />
                         <div className="flex flex-wrap gap-4 mt-1.5">
-                            <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-600">
+                            <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-600 dark:text-slate-400">
                                 <input
                                     type="checkbox"
                                     name="exactMatchLocation"
                                     checked={filters.exactMatchLocation || false}
                                     onChange={(e) => onFiltersChange(prev => ({ ...prev, exactMatchLocation: e.target.checked }))}
-                                    className="rounded text-blue-600 focus:ring-blue-400"
+                                    className="rounded text-blue-600 focus:ring-blue-400 dark:bg-slate-900 dark:border-slate-700"
                                 />
-                                <span>Exact match</span>
+                                <span className="dark:text-slate-400">Exact match</span>
                             </label>
-                            <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-600">
+                            <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-600 dark:text-slate-400">
                                 <input
                                     type="checkbox"
                                     name="foreignOnly"
                                     checked={filters.foreignOnly || false}
                                     onChange={(e) => onFiltersChange(prev => ({ ...prev, foreignOnly: e.target.checked }))}
-                                    className="rounded text-blue-600 focus:ring-blue-400"
+                                    className="rounded text-blue-600 focus:ring-blue-400 dark:bg-slate-900 dark:border-slate-700"
                                 />
-                                <span title="Exclude in-country (India) jobs">International Only</span>
+                                <span title="Exclude in-country (India) jobs" className="dark:text-slate-400">International Only</span>
                             </label>
-                            <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-600">
+                            <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-600 dark:text-slate-400">
                                 <input
                                     type="checkbox"
                                     name="visaSponsorship"
                                     checked={filters.visaSponsorship || false}
                                     onChange={(e) => onFiltersChange(prev => ({ ...prev, visaSponsorship: e.target.checked }))}
-                                    className="rounded text-blue-600 focus:ring-blue-400"
+                                    className="rounded text-blue-600 focus:ring-blue-400 dark:bg-slate-900 dark:border-slate-700"
                                 />
-                                <span title="Look for 'visa sponsorship' in description">Visa Sponsorship</span>
+                                <span title="Look for 'visa sponsorship' in description" className="dark:text-slate-400">Visa Sponsorship</span>
                             </label>
                             <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-600">
                                 <input
@@ -97,7 +97,7 @@ export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersCh
                                     name="remoteAnywhere"
                                     checked={filters.remoteAnywhere || false}
                                     onChange={(e) => onFiltersChange(prev => ({ ...prev, remoteAnywhere: e.target.checked }))}
-                                    className="rounded text-blue-600 focus:ring-blue-400"
+                                    className="rounded text-blue-600 focus:ring-blue-400 dark:bg-slate-900 dark:border-slate-600"
                                 />
                                 <span title="Look for 'worldwide' or 'anywhere' remote jobs">Remote Anywhere</span>
                             </label>
@@ -113,7 +113,7 @@ export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersCh
                             name="experience"
                             value={filters.experience}
                             onChange={handleChange}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white"
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20"
                         >
                             <option value="">Any</option>
                             <option value="Internship">Internship</option>
@@ -130,7 +130,7 @@ export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersCh
                             name="datePosted"
                             value={filters.datePosted}
                             onChange={handleChange}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white"
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20"
                         >
                             <option value="24">Last 24h</option>
                             <option value="72">Last 3 Days</option>
@@ -193,7 +193,7 @@ export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersCh
                             name="jobType"
                             value={filters.jobType}
                             onChange={handleChange}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white"
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-900 dark:text-slate-100"
                         >
                             <option value="">Any</option>
                             <option value="fulltime">Full-time</option>
@@ -211,12 +211,12 @@ export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersCh
                         <span className="text-xs font-medium text-slate-500">Sites</span>
                         <div className="flex gap-3">
                             {Object.keys(filters.sites).map(site => (
-                                <label key={site} className="flex items-center gap-1.5 cursor-pointer text-sm text-slate-700">
+                                <label key={site} className="flex items-center gap-1.5 cursor-pointer text-sm text-slate-700 dark:text-slate-300">
                                     <input
                                         type="checkbox"
                                         checked={filters.sites[site]}
                                         onChange={() => handleSiteChange(site)}
-                                        className="rounded text-blue-600 focus:ring-blue-400"
+                                        className="rounded text-blue-600 focus:ring-blue-400 dark:bg-slate-900 dark:border-slate-700"
                                     />
                                     <span className="capitalize">{site.replace('_', ' ')}</span>
                                 </label>
@@ -229,7 +229,7 @@ export function FilterBar({ onScrape, onExport, isScraping, filters, onFiltersCh
                         <button
                             type="button"
                             onClick={onExport}
-                            className="px-4 py-2 text-slate-600 bg-white border border-slate-300 rounded-md text-sm font-medium hover:bg-slate-50 transition-colors flex items-center gap-2"
+                            className="px-4 py-2 text-slate-600 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors flex items-center gap-2 shadow-sm"
                         >
                             <Download size={16} />
                             Export
